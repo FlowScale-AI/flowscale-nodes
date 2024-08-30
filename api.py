@@ -37,7 +37,16 @@ async def read_last_n_lines(file_path, n):
         
 @PromptServer.instance.routes.get("/flowscale/logs/stream")
 async def stream_logs(request):
-    response = web.StreamResponse(status=200, reason="OK", headers={'Content-Type': 'text/event-stream'})
+    response = web.StreamResponse(
+        status=200, 
+        reason="OK", 
+        headers={
+            'Content-Type': 'text/event-stream',  
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            }
+        )
     await response.prepare(request)
 
     last_200_lines = await read_last_n_lines(comfyui_file_path, 200)
@@ -71,7 +80,10 @@ async def download_logs(request):
     suggested_filename = "flowscale_comfy_log.txt"
     
     headers = {
-        'Content-Disposition': f'attachment; filename="{suggested_filename}"'
+        'Content-Disposition': f'attachment; filename="{suggested_filename}"',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
     }
 
     return web.FileResponse(path=comfyui_file_path, headers=headers)
