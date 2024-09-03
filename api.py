@@ -66,14 +66,20 @@ async def stream_logs(request):
                     else:
                         await asyncio.sleep(2)
 
-                    if response._payload_writer.transport.is_closing():
-                        print("Client disconnected")
-                        break
+                    # if response._payload_writer.transport.is_closing():
+                    #     print("Client disconnected")
+                    #     break
+        except ConnectionResetError:
+            print("[ERROR] Connection was reset by the client")
         except asyncio.CancelledError:
-            print("Stream connection was closed")
+            print("[ERROR] Stream connection was closed")
+        except asyncio.TimeoutError:
+            print("[ERROR] Stream connection timed out")
 
     await send_logs()
     return response
+
+
 
 @PromptServer.instance.routes.get("/flowscale/logs/download")
 async def download_logs(request):
