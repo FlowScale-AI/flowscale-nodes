@@ -4,39 +4,51 @@ import os
 import glob
 import mimetypes
 import asyncio
+import logging
+import aiofiles
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 two_dirs_up = os.path.dirname(os.path.dirname(root_path))
 log_files = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
 
 log_files.sort(key=os.path.getmtime, reverse=True)
-comfyui_file_path = log_files[0] 
+comfyui_file_path = comfyui_file_path = log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
 
 async def read_last_n_lines(file_path, n):
-    with open(file_path, 'rb') as f:
-        f.seek(0, os.SEEK_END)
-        end_position = f.tell()
-        
-        buffer = bytearray()
-        lines = []
-        
-        while end_position > 0 and len(lines) < n:
-            read_size = min(1024, end_position)
+    if not os.path.exists(file_path):
+        return []
+    lines = []
+    try:
+        with open(file_path, 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            end_position = f.tell()
             
-            f.seek(end_position - read_size)
-            buffer.extend(f.read(read_size))
-            end_position -= read_size
+            buffer = bytearray()
             
-            lines_in_buffer = buffer.split(b'\n')            
-            buffer = lines_in_buffer[0]            
-            lines = lines_in_buffer[1:] + lines
+            while end_position > 0 and len(lines) < n:
+                read_size = min(1024, end_position)
+                
+                f.seek(end_position - read_size)
+                buffer = f.read(read_size) + buffer
+                end_position -= read_size
+                
+                lines = buffer.split(b'\n')
 
-        lines = [line.decode('utf-8') for line in lines[-n:]]
-
-        return lines
+            lines = [line.decode('utf-8', errors='ignore') for line in lines[-n:]]
+    except Exception as e:
+        logger.error(f"Error reading last {n} lines: {e}")
+    return lines
         
 @PromptServer.instance.routes.get("/flowscale/logs/stream")
 async def stream_logs(request):
+    if not comfyui_file_path or not os.path.exists(comfyui_file_path):
+        return web.json_response({
+            "error": "Log file does not exist."
+        }, status=404, content_type='application/json')
+
     response = web.StreamResponse(
         status=200, 
         reason="OK", 
@@ -55,34 +67,39 @@ async def stream_logs(request):
         
     async def send_logs():
         try:
-            with open(comfyui_file_path, 'r') as log_file:
-                log_file.seek(0, os.SEEK_END)
+            async with aiofiles.open(comfyui_file_path, 'r') as log_file:
+                await log_file.seek(0, os.SEEK_END)
     
                 while True:
-                    line = log_file.readline()
+                    line = await log_file.readline()
                     if line:
                         await response.write(f"data: {line}\n\n".encode('utf-8'))
                         await response.drain()
                     else:
                         await asyncio.sleep(2)
+                    
+                    if response.task is None or response.task.done():
+                        logger.info("Client disconnected")
+                        break
 
-                    # if response._payload_writer.transport.is_closing():
-                    #     print("Client disconnected")
-                    #     break
         except ConnectionResetError:
-            print("[ERROR] Connection was reset by the client")
+            logger.error("[ERROR] Connection was reset by the client")
         except asyncio.CancelledError:
-            print("[ERROR] Stream connection was closed")
+            logger.error("[ERROR] Stream connection was closed")
         except asyncio.TimeoutError:
-            print("[ERROR] Stream connection timed out")
+            logger.error("[ERROR] Stream connection timed out")
 
     await send_logs()
     return response
 
 
-
 @PromptServer.instance.routes.get("/flowscale/logs/download")
 async def download_logs(request):
+    if not comfyui_file_path or not os.path.exists(comfyui_file_path):
+        return web.json_response({
+            "error": "Log file does not exist."
+        }, status=404, content_type='application/json')
+
     suggested_filename = "flowscale_comfy_log.txt"
     
     headers = {
