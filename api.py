@@ -6,6 +6,7 @@ import mimetypes
 import asyncio
 import logging
 import aiofiles
+import re
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -111,6 +112,8 @@ async def download_logs(request):
 
     return web.FileResponse(path=comfyui_file_path, headers=headers)
     
+
+
 @PromptServer.instance.routes.get("/flowscale/output")
 async def fetch_outputs(request):
     output_directory = os.path.join(os.getcwd(), "output")
@@ -177,3 +180,46 @@ async def search_output(request):
         }, status=500, content_type='application/json')
 
     return web.Response(body=file_content, content_type=mime_type)
+
+@PromptServer.instance.routes.post("/flowscale/upload")
+async def upload_media(request):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    try:
+        reader = await request.multipart()
+        field = await reader.next()
+
+        if field is None or not field.filename:
+            return web.json_response({'error': 'No file was uploaded.'}, status=400, headers=headers)
+
+        filename = os.path.basename(field.filename)
+        filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
+
+        # Check content type for images and videos
+        content_type = field.headers.get('Content-Type', '')
+        if not (content_type.startswith('image/') or content_type.startswith('video/')):
+            return web.json_response({'error': 'Invalid content type. Only images and videos are allowed.'}, status=400, headers=headers)
+
+        media_directory = os.path.join(os.getcwd(), "inputs")
+
+        os.makedirs(media_directory, exist_ok=True)
+
+        file_path = os.path.join(media_directory, filename)
+        size = 0
+
+        async with aiofiles.open(file_path, 'wb') as f:
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                size += len(chunk)
+                await f.write(chunk)
+
+        return web.json_response({'message': 'File uploaded successfully.', 'filename': filename, 'size': size}, headers=headers)
+
+    except Exception as e:
+        logger.error(f"Error uploading file: {e}")
+        return web.json_response({'error': str(e)}, status=500, headers=headers)
