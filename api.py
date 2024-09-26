@@ -17,31 +17,6 @@ log_files = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
 
 log_files.sort(key=os.path.getmtime, reverse=True)
 comfyui_file_path = comfyui_file_path = log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
-
-async def read_last_n_lines(file_path, n):
-    if not os.path.exists(file_path):
-        return []
-    lines = []
-    try:
-        with open(file_path, 'rb') as f:
-            f.seek(0, os.SEEK_END)
-            end_position = f.tell()
-            
-            buffer = bytearray()
-            
-            while end_position > 0 and len(lines) < n:
-                read_size = min(1024, end_position)
-                
-                f.seek(end_position - read_size)
-                buffer = f.read(read_size) + buffer
-                end_position -= read_size
-                
-                lines = buffer.split(b'\n')
-
-            lines = [line.decode('utf-8', errors='ignore') for line in lines[-n:]]
-    except Exception as e:
-        logger.error(f"Error reading last {n} lines: {e}")
-    return lines
         
 @PromptServer.instance.routes.get("/flowscale/logs/stream")
 async def stream_logs(request):
@@ -113,7 +88,6 @@ async def download_logs(request):
     return web.FileResponse(path=comfyui_file_path, headers=headers)
     
 
-
 @PromptServer.instance.routes.get("/flowscale/output")
 async def fetch_outputs(request):
     output_directory = os.path.join(os.getcwd(), "output")
@@ -138,7 +112,8 @@ async def fetch_outputs(request):
         "directory_contents": directory_contents
     }, content_type='application/json')
 
-@PromptServer.instance.routes.get("/flowscale/search")
+
+@PromptServer.instance.routes.get("/flowscale/output/search")
 async def search_output(request):
     filename = request.query.get('filename')
     if not filename:
@@ -181,6 +156,7 @@ async def search_output(request):
 
     return web.Response(body=file_content, content_type=mime_type)
 
+
 @PromptServer.instance.routes.post("/flowscale/upload")
 async def upload_media(request):
     headers = {
@@ -203,7 +179,7 @@ async def upload_media(request):
         if not (content_type.startswith('image/') or content_type.startswith('video/')):
             return web.json_response({'error': 'Invalid content type. Only images and videos are allowed.'}, status=400, headers=headers)
 
-        media_directory = os.path.join(os.getcwd(), "inputs")
+        media_directory = os.path.join(os.getcwd(), "input")
 
         os.makedirs(media_directory, exist_ok=True)
 
@@ -223,3 +199,28 @@ async def upload_media(request):
     except Exception as e:
         logger.error(f"Error uploading file: {e}")
         return web.json_response({'error': str(e)}, status=500, headers=headers)
+
+async def read_last_n_lines(file_path, n):
+    if not os.path.exists(file_path):
+        return []
+    lines = []
+    try:
+        with open(file_path, 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            end_position = f.tell()
+            
+            buffer = bytearray()
+            
+            while end_position > 0 and len(lines) < n:
+                read_size = min(1024, end_position)
+                
+                f.seek(end_position - read_size)
+                buffer = f.read(read_size) + buffer
+                end_position -= read_size
+                
+                lines = buffer.split(b'\n')
+
+            lines = [line.decode('utf-8', errors='ignore') for line in lines[-n:]]
+    except Exception as e:
+        logger.error(f"Error reading last {n} lines: {e}")
+    return lines
