@@ -88,8 +88,8 @@ async def download_logs(request):
     return web.FileResponse(path=comfyui_file_path, headers=headers)
     
 
-@PromptServer.instance.routes.get("/flowscale/output")
-async def fetch_outputs(request):
+@PromptServer.instance.routes.get("/flowscale/output/list")
+async def fetch_output_contents(request):
     output_directory = os.path.join(os.getcwd(), "output")
     
     if not os.path.exists(output_directory):
