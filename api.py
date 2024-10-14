@@ -7,6 +7,7 @@ import asyncio
 import logging
 import aiofiles
 import re
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -142,6 +143,11 @@ async def search_output(request):
             "error": "File not found."
         }, status=404, content_type='application/json')
 
+    if not is_file_ready(file_path, delay=5):
+        return web.json_response({
+            "error": "File not found."
+        }, status=404, content_type='application/json')
+
     mime_type, _ = mimetypes.guess_type(file_path)
     if mime_type is None:
         mime_type = "application/octet-stream"
@@ -199,6 +205,19 @@ async def upload_media(request):
     except Exception as e:
         logger.error(f"Error uploading file: {e}")
         return web.json_response({'error': str(e)}, status=500, headers=headers)
+
+def is_file_ready(file_path, delay=1):
+    stat_info = os.stat(file_path)
+    size1 = stat_info.st_size
+    mtime1 = stat_info.st_mtime
+    time.sleep(delay)
+    stat_info = os.stat(file_path)
+    size2 = stat_info.st_size
+    mtime2 = stat_info.st_mtime
+    if size1 == size2 and mtime1 == mtime2:
+        return True
+    else:
+        return False
 
 async def read_last_n_lines(file_path, n):
     if not os.path.exists(file_path):
