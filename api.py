@@ -143,7 +143,11 @@ async def search_output(request):
             "error": "File not found."
         }, status=404, content_type='application/json')
 
-    if not is_file_ready(file_path, delay=30):
+    if ".mp4" in file_path:
+        delay = 30
+    else:
+        delay = 5
+    if not is_file_ready(file_path, delay=delay):
         return web.json_response({
             "error": "File not found."
         }, status=404, content_type='application/json')
