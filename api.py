@@ -123,13 +123,16 @@ async def search_output(request):
         }, status=400, content_type='application/json')
 
     output_directory = os.path.join(os.getcwd(), "output")
-    
-    search_patterns = [
-        filename + "*" + ".mp4",
-        filename + "*" + ".gif",
-        filename + "*" + ".txt",
-        filename
+
+    supported_extensions = [
+        ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
+        ".gif",
+        ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg",
+        ".txt", ".pdf", ".docx"
     ]
+    
+    search_patterns = [filename + "*" + ext for ext in supported_extensions] + [filename]
+
     
     file_path = None
     for search_pattern in search_patterns:
@@ -143,13 +146,12 @@ async def search_output(request):
             "error": "File not found."
         }, status=404, content_type='application/json')
 
-    if ".mp4" in file_path:
-        delay = 30
-    else:
-        delay = 5
-    if not is_file_ready(file_path, delay=delay):
+    video_extensions = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"]
+    max_delay = 15 if any(file_path.endswith(ext) for ext in video_extensions) else 5
+
+    if not is_file_ready(file_path, max_delay=max_delay):
         return web.json_response({
-            "error": "File not found."
+            "error": "File not ready yet."
         }, status=404, content_type='application/json')
 
     mime_type, _ = mimetypes.guess_type(file_path)
@@ -210,18 +212,22 @@ async def upload_media(request):
         logger.error(f"Error uploading file: {e}")
         return web.json_response({'error': str(e)}, status=500, headers=headers)
 
-def is_file_ready(file_path, delay=1):
+def is_file_ready(file_path, max_delay=15):
+    check_interval = 5
+    elapsed_time = 0
     stat_info = os.stat(file_path)
-    size1 = stat_info.st_size
-    mtime1 = stat_info.st_mtime
-    time.sleep(delay)
-    stat_info = os.stat(file_path)
-    size2 = stat_info.st_size
-    mtime2 = stat_info.st_mtime
-    if size1 == size2 and mtime1 == mtime2:
-        return True
-    else:
-        return False
+    size_initial = stat_info.st_size
+
+    while elapsed_time < max_delay:
+        time.sleep(check_interval)
+        elapsed_time += check_interval
+        stat_info = os.stat(file_path)
+        size_current = stat_info.st_size
+
+        if size_current != size_initial:
+            return False
+    
+    return True
 
 async def read_last_n_lines(file_path, n):
     if not os.path.exists(file_path):
