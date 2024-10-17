@@ -147,7 +147,7 @@ async def search_output(request):
         }, status=404, content_type='application/json')
 
     video_extensions = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"]
-    max_delay = 15 if any(file_path.endswith(ext) for ext in video_extensions) else 5
+    max_delay = 30 if any(file_path.endswith(ext) for ext in video_extensions) else 5
 
     if not is_file_ready(file_path, max_delay=max_delay):
         return web.json_response({
