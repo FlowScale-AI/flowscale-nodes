@@ -11,9 +11,11 @@ class LoadImagesBatch:
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
         files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        return {"required":
-                    {"images": (sorted(files), {"image_upload": True, "multiselect": True})},
-                }
+        return {
+            "required": {
+                "images": (sorted(files), {"multi_select": True, "file_upload": True})
+            }
+        }
 
     CATEGORY = "image"
 
