@@ -1,5 +1,5 @@
-print("Hello from flowscale node")
+print("Initializing Flowscale Nodes")
 
-from . import api
+from .api import *
 
 NODE_CLASS_MAPPINGS = {}

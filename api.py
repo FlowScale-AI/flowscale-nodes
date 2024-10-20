@@ -1,4 +1,4 @@
-from server import PromptServer
+from server import PromptServer # type: ignore
 from aiohttp import web
 import os
 import glob
