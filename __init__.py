@@ -1,9 +1,8 @@
 print("Initializing Flowscale Nodes")
 
-from .nodes.input import SaveBatchImagesNode, LoadImagesFromDirectoryNode
+from .nodes.input import LoadImagesBatch
 from .api import *
 
 NODE_CLASS_MAPPINGS = {
-  "SaveBatchImagesNode": SaveBatchImagesNode,
-  "LoadImagesFromDirectoryNode": LoadImagesFromDirectoryNode
+  "Load Images Batch": LoadImagesBatch
 }
