@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 logger.info("Loading Flowscale IO nodes...")
 
-@PromptServer.instance.routes.post("/flowscale/upload")
+@PromptServer.instance.routes.post("/flowscale/io/upload")
 async def upload_media(request):
     headers = {
         'Access-Control-Allow-Origin': '*',
@@ -55,7 +55,7 @@ async def upload_media(request):
         logger.error(f"Error uploading file: {e}")
         return web.json_response({'error': str(e)}, status=500, headers=headers)
 
-@PromptServer.instance.routes.get("/flowscale/upload_batch")
+@PromptServer.instance.routes.get("/flowscale/io/upload_batch")
 async def upload_batch(request):
     headers = {
         'Access-Control-Allow-Origin': '*',
@@ -122,13 +122,11 @@ async def upload_batch(request):
         return web.json_response({'error': str(e)}, status=500, headers=headers)
     
 
-@PromptServer.instance.routes.get("/flowscale/path/list")
+@PromptServer.instance.routes.get("/flowscale/io/list")
 async def fetch_path_contents(request):
     directory_name = request.query.get('directory', 'output')
     base_directory = os.getcwd()
-    
-    print("Directory Name: ", directory_name)
-    
+        
     BLACKLISTED_DIRECTORIES = ["models", "config", "custom_nodes", "api_server", "app", "comfy"]
     
     sanitized_directory_name = os.path.normpath(directory_name).lstrip(os.sep).rstrip(os.sep)
@@ -168,8 +166,8 @@ async def fetch_path_contents(request):
     }, content_type='application/json')
 
 
-@PromptServer.instance.routes.get("/flowscale/output/search")
-async def search_output(request):
+@PromptServer.instance.routes.get("/flowscale/io/search")
+async def search_file(request):
     filepath = request.query.get('filepath')
     if not filepath:
         return web.json_response({
@@ -202,7 +200,7 @@ async def search_output(request):
     supported_extensions = [
         ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
         ".gif",
-        ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg",
+        ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg", ".webp", ".avif", ".jfif",
         ".txt", ".pdf", ".docx",
         ".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"
     ]
