@@ -68,54 +68,56 @@ async def upload_batch(request):
     try:
         reader = await request.multipart()
         path = None
-        images = []
+        file_infos = []
+        base_directory = os.getcwd()
         
-        async for field in reader:
+        while True:
+            field = await reader.next()
+            if field is None:
+                break
+            
             if field.name == 'path':
-                path = await field.text()
+                raw_path = await field.text()
+                sanitized_path = os.path.normpath(os.path.join(base_directory, raw_path))
+                
+                if not sanitized_path.startswith(base_directory):
+                    return web.json_response({'error': 'Invalid path provided.'}, status=400, headers=headers)
+                
+                os.path.makedirs(sanitized_path, exist_ok=True)
+                path = sanitized_path
+            
             elif field.name == 'images':
-                images.append(field)    
+                if not path:
+                    return web.json_response({'error': 'No path was provided.'}, status=400, headers=headers)
+                
+                if not field.filename:
+                    continue
+                
+                filename = os.path.basename(field.filename)
+                filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
+                
+                content_type = field.headers.get('Content-Type', '')
+                if not content_type.startswith('image/'):
+                    continue
+                
+                file_path = os.path.join(path, filename)
+                size = 0
+                
+                async with aiofiles.open(file_path, 'wb') as f:
+                    while True:
+                        chunk = await field.read_chunk()
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        await f.write(chunk)
+                        
+                file_infos.append({'filename': filename, 'size': size, 'path': file_path})
+            
             else:
                 pass
-            
-        if not path or not images:
-            return web.json_response({'error': 'No images/path were provided.'}, status=400, headers=headers)
         
-        base_directory = os.path.join(os.getcwd())
-        sanitized_path = os.path.normpath(base_directory + "/" + path)
-        
-        if not sanitized_path.startswith(base_directory):
-            return web.json_response({'error': 'Invalid path provided.'}, status=400, headers=headers)
-        
-        os.makedirs(sanitized_path, exist_ok=True)
-        
-        file_infos = []
-        for image_field in images:
-            if not image_field.filename:
-                continue
-            
-            filename = os.path.basename(image_field.filename)
-            filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
-            
-            content_type = image_field.headers.get('Content-Type', '')
-            if not content_type.startswith('image/'):
-                continue
-            
-            file_path = os.path.join(sanitized_path, filename)
-            size = 0
-            
-            async with aiofiles.open(file_path, 'wb') as f:
-                while True:
-                    chunk = await image_field.read_chunk()
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    await f.write(chunk)
-                    
-            file_infos.append({'filename': filename, 'size': size})
-        
-        if not file_infos:
-            return web.json_response({'error': 'No images were uploaded.'}, status=400, headers=headers)
+        if not file_infos or not path:
+            return web.json_response({'error': 'No images/path were uploaded.'}, status=400, headers=headers)
         
         return web.json_response({'message': 'Files uploaded successfully.', 'files': file_infos}, headers=headers)
     
