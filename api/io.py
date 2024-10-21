@@ -78,6 +78,11 @@ async def upload_batch(request):
             
             if field.name == 'path':
                 raw_path = await field.text()
+                if raw_path.startswith("./") or raw_path.startswith("../"):
+                    raw_path = raw_path.lstrip("./").lstrip("../")
+                if raw_path.startswith("/") or raw_path.startswith("\\"):
+                    raw_path = raw_path.lstrip("/").lstrip("\\")
+                
                 sanitized_path = os.path.normpath(os.path.join(base_directory, raw_path))
                 
                 if not sanitized_path.startswith(base_directory):
@@ -129,6 +134,11 @@ async def upload_batch(request):
 @PromptServer.instance.routes.get("/flowscale/io/list")
 async def fetch_path_contents(request):
     directory_name = request.query.get('directory', 'output')
+    if directory_name.startswith("./") or directory_name.startswith("../"):
+        directory_name = directory_name.lstrip("./").lstrip("../")
+    if directory_name.startswith("/") or directory_name.startswith("\\"):
+        directory_name = directory_name.lstrip("/").lstrip("\\")
+    
     base_directory = os.getcwd()
         
     BLACKLISTED_DIRECTORIES = ["models", "config", "custom_nodes", "api_server", "app", "comfy"]
@@ -177,6 +187,11 @@ async def search_file(request):
         return web.json_response({
             "error": "filepath query parameter is required."
         }, status=400, content_type='application/json')
+        
+    if filepath.startswith("./") or filepath.startswith("../"):
+        filepath = filepath.lstrip("./").lstrip("../")
+    if filepath.startswith("/") or filepath.startswith("\\"):
+        filepath = filepath.lstrip("/").lstrip("\\")
 
     base_directory = os.getcwd()
     BLACKLISTED_DIRECTORIES = ["custom_nodes", "api_server", "app", "comfy"]
