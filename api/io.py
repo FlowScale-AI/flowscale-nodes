@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 logger.info("Loading Flowscale IO nodes...")
 
+mimetypes.add_type('image/webp', '.webp')
+
 @PromptServer.instance.routes.post("/flowscale/io/upload")
 async def upload_media(request):
     headers = {
@@ -224,7 +226,10 @@ async def search_file(request):
         mime_type = "application/octet-stream"
         
     try:
-        return web.FileResponse(path=absolute_filepath)
+        return web.FileResponse(path=absolute_filepath, headers={
+            'Content-Type': mime_type,
+            'Content-Disposition': f'attachment; filename="{os.path.basename(absolute_filepath)}"'
+        })
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         return web.json_response({

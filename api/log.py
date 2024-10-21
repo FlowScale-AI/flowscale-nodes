@@ -18,7 +18,7 @@ log_files = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
 log_files.sort(key=os.path.getmtime, reverse=True)
 comfyui_file_path = comfyui_file_path = log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
         
-@PromptServer.instance.routes.get("/flowscale/logs/download")
+@PromptServer.instance.routes.get("/flowscale/log/download")
 async def download_logs(request):
     if not comfyui_file_path or not os.path.exists(comfyui_file_path):
         return web.json_response({
@@ -37,7 +37,7 @@ async def download_logs(request):
     return web.FileResponse(path=comfyui_file_path, headers=headers)
         
 
-@PromptServer.instance.routes.get("/flowscale/logs/stream")
+@PromptServer.instance.routes.get("/flowscale/log/stream")
 async def stream_logs(request):
     if not comfyui_file_path or not os.path.exists(comfyui_file_path):
         return web.json_response({
