@@ -1,10 +1,13 @@
 from server import PromptServer # type: ignore
 import asyncio
 from aiohttp import web
-from .. import logger
+import logging
 import os
 import glob
 import aiofiles
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 logger.info("Loading Flowscale Logger nodes...")
 
