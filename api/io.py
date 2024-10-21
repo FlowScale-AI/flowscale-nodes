@@ -83,7 +83,7 @@ async def upload_batch(request):
                 if not sanitized_path.startswith(base_directory):
                     return web.json_response({'error': 'Invalid path provided.'}, status=400, headers=headers)
                 
-                os.path.makedirs(sanitized_path, exist_ok=True)
+                os.makedirs(sanitized_path, exist_ok=True)
                 path = sanitized_path
             
             elif field.name == 'images':
