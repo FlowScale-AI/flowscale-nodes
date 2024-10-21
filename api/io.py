@@ -120,8 +120,8 @@ async def upload_batch(request):
         return web.json_response({'error': str(e)}, status=500, headers=headers)
     
 
-@PromptServer.instance.routes.get("/flowscale/output/list")
-async def fetch_output_contents(request):
+@PromptServer.instance.routes.get("/flowscale/path/list")
+async def fetch_path_contents(request):
     directory_name = request.query.get('directory', 'output')
     base_directory = os.getcwd()
     
