@@ -57,7 +57,7 @@ async def upload_media(request):
         logger.error(f"Error uploading file: {e}")
         return web.json_response({'error': str(e)}, status=500, headers=headers)
 
-@PromptServer.instance.routes.get("/flowscale/io/upload_batch")
+@PromptServer.instance.routes.post("/flowscale/io/upload_batch")
 async def upload_batch(request):
     headers = {
         'Access-Control-Allow-Origin': '*',
