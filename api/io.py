@@ -8,7 +8,7 @@ import time
 import re
 import aiofiles
 
-logger.info("Loading io nodes...")
+logger.info("Loading Flowscale IO nodes...")
 
 @PromptServer.instance.routes.post("/flowscale/upload")
 async def upload_media(request):
@@ -53,109 +53,183 @@ async def upload_media(request):
         logger.error(f"Error uploading file: {e}")
         return web.json_response({'error': str(e)}, status=500, headers=headers)
 
+@PromptServer.instance.routes.get("/flowscale/upload_batch")
+async def upload_batch(request):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
     
-# OUTPUT
+    try:
+        reader = await request.multipart()
+        path = None
+        images = []
+        
+        async for field in reader:
+            if field.name == 'path':
+                path = await field.text()
+            elif field.name == 'images':
+                images.append(field)    
+            else:
+                pass
+            
+        if not path or not images:
+            return web.json_response({'error': 'No images/path were provided.'}, status=400, headers=headers)
+        
+        base_directory = os.path.join(os.getcwd())
+        sanitized_path = os.path.normpath(base_directory + "/" + path)
+        
+        if not sanitized_path.startswith(base_directory):
+            return web.json_response({'error': 'Invalid path provided.'}, status=400, headers=headers)
+        
+        os.makedirs(sanitized_path, exist_ok=True)
+        
+        file_infos = []
+        for image_field in images:
+            if not image_field.filename:
+                continue
+            
+            filename = os.path.basename(image_field.filename)
+            filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
+            
+            content_type = image_field.headers.get('Content-Type', '')
+            if not content_type.startswith('image/'):
+                continue
+            
+            file_path = os.path.join(sanitized_path, filename)
+            size = 0
+            
+            async with aiofiles.open(file_path, 'wb') as f:
+                while True:
+                    chunk = await image_field.read_chunk()
+                    if not chunk:
+                        break
+                    size += len(chunk)
+                    await f.write(chunk)
+                    
+            file_infos.append({'filename': filename, 'size': size})
+        
+        if not file_infos:
+            return web.json_response({'error': 'No images were uploaded.'}, status=400, headers=headers)
+        
+        return web.json_response({'message': 'Files uploaded successfully.', 'files': file_infos}, headers=headers)
+    
+    except Exception as e:
+        logger.error(f"Error uploading files: {e}")
+        return web.json_response({'error': str(e)}, status=500, headers=headers)
+    
 
 @PromptServer.instance.routes.get("/flowscale/output/list")
 async def fetch_output_contents(request):
-    output_directory = os.path.join(os.getcwd(), "output")
+    directory_name = request.query.get('directory', 'output')
+    base_directory = os.getcwd()
     
-    if not os.path.exists(output_directory):
+    BLACKLISTED_DIRECTORIES = ["models", "config", "custom_nodes", "api_server", "app", "comfy"]
+    
+    sanitized_directory_name = os.path.normpath(directory_name).lstrip(os.sep).rstrip(os.sep)
+    
+    directory_path = os.path.abspath(os.path.join(base_directory, sanitized_directory_name))
+            
+    if not directory_path.startswith(base_directory):
         return web.json_response({
-            "error": "Output directory does not exist."
+            "error": "Invalid directory path."
+        }, status=400, content_type='application/json')
+        
+    relative_path = os.path.relpath(directory_path, base_directory)
+    path_parts = relative_path.split(os.sep)
+    
+    if any(part in BLACKLISTED_DIRECTORIES for part in path_parts):
+        return web.json_response({
+            "error": "Invalid directory path."
+        }, status=400, content_type='application/json')
+            
+    if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
+        return web.json_response({
+            "error": "Directory does not exist."
         }, status=404, content_type='application/json')
     
     try:
-        directory_contents = os.listdir(output_directory)
+        directory_contents = os.listdir(directory_path)
     except Exception as e:
+        logger.error(f"Error fetching directory contents: {e}")
         return web.json_response({
             "error": str(e)
         }, status=500, content_type='application/json')
-    
-    print("Output Directory:", output_directory)
-    print("Directory Contents:", directory_contents)
-    
+        
     return web.json_response({
-        "output_directory": output_directory,
+        "directory": sanitized_directory_name,
+        "directory_path": directory_path,
         "directory_contents": directory_contents
     }, content_type='application/json')
 
 
 @PromptServer.instance.routes.get("/flowscale/output/search")
 async def search_output(request):
-    filename = request.query.get('filename')
-    if not filename:
+    filepath = request.query.get('filepath')
+    if not filepath:
         return web.json_response({
-            "error": "Filename query parameter is required."
+            "error": "filepath query parameter is required."
         }, status=400, content_type='application/json')
 
-    output_directory = os.path.join(os.getcwd(), "output")
+    base_directory = os.getcwd()
+    BLACKLISTED_DIRECTORIES = ["custom_nodes", "api_server", "app", "comfy"]
+        
+    sanitized_filepath = os.path.normpath(filepath).lstrip(os.sep).rstrip(os.sep)
+    
+    path_parts = sanitized_filepath.split(os.sep)
+    if any(part in BLACKLISTED_DIRECTORIES for part in path_parts):
+        return web.json_response({
+            "error": "Invalid file path."
+        }, status=400, content_type='application/json')
+        
+    absolute_filepath = os.path.abspath(os.path.join(base_directory, sanitized_filepath))
+    
+    if not absolute_filepath.startswith(base_directory):
+        return web.json_response({
+            "error": "Invalid file path."
+        }, status=400, content_type='application/json')
+    
+    if not os.path.exists(absolute_filepath) or not os.path.isfile(absolute_filepath):
+        return web.json_response({
+            "error": "File does not exist."
+        }, status=404, content_type='application/json')
 
     supported_extensions = [
         ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
         ".gif",
         ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg",
-        ".txt", ".pdf", ".docx"
+        ".txt", ".pdf", ".docx",
+        ".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"
     ]
     
-    search_patterns = [filename + "*" + ext for ext in supported_extensions] + [filename]
-    
-    file_path = None
-    for search_pattern in search_patterns:
-        file_paths = glob.glob(os.path.join(output_directory, "*" + search_pattern + "*"))
-        if file_paths:
-            file_path = file_paths[0]
-            break
-
-    if not file_path:
+    file_extension = os.path.splitext(absolute_filepath)[1]
+    if file_extension.lower() not in supported_extensions:
         return web.json_response({
-            "error": "File not found."
-        }, status=404, content_type='application/json')
-
+            "error": "Unsupported file extension."
+        }, status=415, content_type='application/json')
+    
     video_extensions = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"]
-    max_delay = 30 if any(file_path.endswith(ext) for ext in video_extensions) else 5
-
-    if not is_file_ready(file_path, max_delay=max_delay):
+    model_extensions = [".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"]
+    max_delay = 30 if file_extension.lower() in video_extensions or file_extension.lower() in model_extensions else 5
+    if not is_file_ready(absolute_filepath, max_delay):
         return web.json_response({
             "error": "File not ready yet."
         }, status=404, content_type='application/json')
-
-    mime_type, _ = mimetypes.guess_type(file_path)
+    
+    mime_type, _ = mimetypes.guess_type(absolute_filepath)
     if mime_type is None:
         mime_type = "application/octet-stream"
-
+        
     try:
-        with open(file_path, 'rb') as file:
-            file_content = file.read()
+        return web.FileResponse(path=absolute_filepath)
     except Exception as e:
+        logger.error(f"Error reading file: {e}")
         return web.json_response({
             "error": str(e)
         }, status=500, content_type='application/json')
 
-    return web.Response(body=file_content, content_type=mime_type)
 
-# Directory listing
-@PromptServer.instance.routes.get("/flowscale/output/directory")
-async def fetch_output_directory(request, folder_path=None):
-    output_directory = os.path.join(os.getcwd(), "output")
-    
-    if not os.path.exists(output_directory):
-        return web.json_response({
-            "error": "Output directory does not exist."
-        }, status=404, content_type='application/json')
-    
-    try:
-        directory_contents = os.listdir(output_directory)
-    except Exception as e:
-        return web.json_response({
-            "error": str(e)
-        }, status=500, content_type='application/json')
-    
-    return web.json_response({
-        "output_directory": output_directory,
-        "directory_contents": directory_contents
-    }, content_type='application/json')
-  
 def is_file_ready(file_path, max_delay=15):
     check_interval = 5
     elapsed_time = 0

@@ -6,7 +6,7 @@ import os
 import glob
 import aiofiles
 
-logger.info("Loading log nodes...")
+logger.info("Loading Flowscale Logger nodes...")
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 two_dirs_up = os.path.dirname(os.path.dirname(root_path))

@@ -1,7 +1,2 @@
 aiofiles
 aiohttp
-
-torch
-torchvision
-numpy
-pillow
