@@ -1,3 +1,4 @@
+import glob
 from server import PromptServer # type: ignore
 import logging
 from aiohttp import web
@@ -211,10 +212,14 @@ async def search_file(request):
             "error": "Invalid file path."
         }, status=400, content_type='application/json')
     
-    if not os.path.exists(absolute_filepath) or not os.path.isfile(absolute_filepath):
+    search_directory = os.path.dirname(absolute_filepath)
+    partial_filename = os.path.basename(absolute_filepath)
+    
+    if not os.path.exists(search_directory) or not os.path.isdir(search_directory):
         return web.json_response({
-            "error": "File does not exist."
+            "error": "Directory does not exist."
         }, status=404, content_type='application/json')
+        
 
     supported_extensions = [
         ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
@@ -223,6 +228,34 @@ async def search_file(request):
         ".txt", ".pdf", ".docx",
         ".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"
     ]
+    
+    candidates = []
+    for extension in supported_extensions:
+        pattern = partial_filename + "*" + extension
+        pattern_path = os.path.join(search_directory, pattern)
+        for candidate_filepath in glob.glob(pattern_path):
+            candidate_absolute_path = os.path.abspath(candidate_filepath)
+            if not candidate_absolute_path.startswith(base_directory):
+                continue
+            
+            relative_path = os.path.relpath(candidate_absolute_path, base_directory)
+            path_parts = relative_path.split(os.sep)
+            if any(part in BLACKLISTED_DIRECTORIES for part in path_parts):
+                continue
+            
+            if os.path.isfile(candidate_absolute_path):
+                candidates.append(candidate_absolute_path)
+                break
+        
+        if candidates:
+            break
+        
+    if not candidates:
+        return web.json_response({
+            "error": "File not found."
+        }, status=404, content_type='application/json')
+        
+    absolute_filepath = candidates[0]    
     
     file_extension = os.path.splitext(absolute_filepath)[1]
     if file_extension.lower() not in supported_extensions:
