@@ -255,6 +255,7 @@ async def search_file(request):
             "error": "File not found."
         }, status=404, content_type='application/json')
         
+    candidates.sort(key=lambda x: os.path.getmtime(x), reverse=True)
     absolute_filepath = candidates[0]    
     
     file_extension = os.path.splitext(absolute_filepath)[1]
