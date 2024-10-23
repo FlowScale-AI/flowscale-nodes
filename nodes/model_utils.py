@@ -38,4 +38,4 @@ class LoadModelFromCivitAI:
       if result != 0:
           raise Exception(f"Failed to download model from CivitAI: {model_url}")
       
-      return full_path
+      return (full_path,)

@@ -16,7 +16,7 @@ class UploadModelToFlowscaleVolume:
   def INPUT_TYPES(cls):
     return {
       "required": {
-          "s3_url": ("STRING", {"multiline": False}),
+          "s3_url": ("STRING", {"multiline": False, "forceInput": True}),
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"})
       }
     }
@@ -43,6 +43,8 @@ class UploadModelToFlowscaleVolume:
     response = httpx.post(url, headers=headers, json=body)
     if response.status_code != 200:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
+    
+    return ("Model Upload Initialized",)
     
     
     
