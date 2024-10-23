@@ -1,3 +1,4 @@
+import json
 import os
 import httpx
 
@@ -19,9 +20,9 @@ class UploadModelToFlowscaleVolume:
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"})
       },
       "optional": {
-          "huggingface_url": ("STRING", {"multiline": False, "forceInput": True, "placeholder": "https://huggingface.co/my_model"}),
-          "s3_url": ("STRING", {"multiline": False, "forceInput": True, "placeholder": "https://bucket.s3.amazonaws.com/my_bucket/my_model"}),
-          "civilai_url": ("STRING", {"multiline": False, "forceInput": True, "placeholder": "https://civilai.com/my_model"})
+          "huggingface_url": ("STRING", {"multiline": False, "forceInput": True}),
+          "s3_url": ("STRING", {"multiline": False, "forceInput": True}),
+          "civilai_url": ("STRING", {"multiline": False, "forceInput": True})
       }
     }
     
@@ -44,6 +45,9 @@ class UploadModelToFlowscaleVolume:
       "download_url": s3_url,
       "upload_type": "lora",
     }
+    
+    curl_command = f"curl -X POST {url} -H 'X-Team: {TEAM_ID}' -H 'Content-Type: application/json' -d '{json.dumps(body)}'"
+    print(curl_command)
     
     response = httpx.post(url, headers=headers, json=body)
     if response.status_code != 200:
