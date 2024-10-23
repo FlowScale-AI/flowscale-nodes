@@ -22,6 +22,9 @@ class LoadModelFromCivitAI:
   CATEGORY = "Utilities"
 
   def load_model_from_civitai(self, model_url, path):
+      env = os.environ.copy()
+      print(env)
+    
       if not CIVITAI_API_KEY:
           raise Exception("CivitAI API key not set")
         
