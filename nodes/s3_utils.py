@@ -49,6 +49,6 @@ class UploadModelToS3:
     try:
       s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
       download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
-      return download_url
+      return download_url, filepath
     except Exception as e:
       raise Exception(f"Failed to upload model to S3: {str(e)}")
