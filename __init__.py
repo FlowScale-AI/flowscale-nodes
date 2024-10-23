@@ -11,7 +11,13 @@ from .nodes.flowscale_volume_utils import UploadModelToFlowscaleVolume
 load_dotenv()
 
 NODE_CLASS_MAPPINGS = { 
-  "Upload Model To S3": UploadModelToS3,
-  "Load Model From CivitAI": LoadModelFromCivitAI,
-  "Upload Model To Flowscale Volume": UploadModelToFlowscaleVolume
+  "UploadModelToS3": UploadModelToS3,
+  "LoadModelFromCivitAI": LoadModelFromCivitAI,
+  "UploadModelToFlowscaleVolume": UploadModelToFlowscaleVolume
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+  "UploadModelToS3": "[FS] Upload Model to S3",
+  "LoadModelFromCivitAI": "[FS] Load Model from CivitAI",
+  "UploadModelToFlowscaleVolume": "[FS] Upload Model to Flowscale Volume"
 }

@@ -16,8 +16,12 @@ class UploadModelToFlowscaleVolume:
   def INPUT_TYPES(cls):
     return {
       "required": {
-          "s3_url": ("STRING", {"multiline": False, "forceInput": True}),
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"})
+      },
+      "optional": {
+          "huggingface_url": ("STRING", {"multiline": False, "forceInput": True, "placeholder": "https://huggingface.co/my_model"}),
+          "s3_url": ("STRING", {"multiline": False, "forceInput": True, "placeholder": "https://bucket.s3.amazonaws.com/my_bucket/my_model"}),
+          "civilai_url": ("STRING", {"multiline": False, "forceInput": True, "placeholder": "https://civilai.com/my_model"})
       }
     }
     
@@ -45,7 +49,7 @@ class UploadModelToFlowscaleVolume:
     if response.status_code != 200:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
     
-    return ("Model Upload Initialized",)
+    return {"ui": {"text": "Model Upload Initialized"}, "result": ("Model Upload Initialized",)}  
     
     
     
