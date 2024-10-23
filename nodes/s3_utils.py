@@ -9,7 +9,7 @@ class UploadModelToS3:
   @classmethod
   def INPUT_TYPES(cls):
     return {
-      '"required"': {
+      "required": {
           "filepath": ("STRING", {"multiline": False})
       }
     }

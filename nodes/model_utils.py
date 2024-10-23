@@ -6,7 +6,7 @@ class LoadModelFromCivitAI:
   @classmethod
   def INPUT_TYPES(cls):
     return {
-      '"required"': {
+      "required": {
           "model_url": ("STRING", {"multiline": False}),
           "path": ("STRING", {"multiline": False})
       }

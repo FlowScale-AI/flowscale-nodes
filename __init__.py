@@ -8,7 +8,7 @@ from .nodes.model_utils import LoadModelFromCivitAI
 from .nodes.flowscale_volume_utils import UploadModelToFlowscaleVolume
 
 NODE_CLASS_MAPPINGS = { 
-  "UploadModelToS3": UploadModelToS3,
-  "LoadModelFromCivitAI": LoadModelFromCivitAI,
-  "UploadModelToFlowscaleVolume": UploadModelToFlowscaleVolume
+  "Upload Model To S3": UploadModelToS3,
+  "Load Model From CivitAI": LoadModelFromCivitAI,
+  "Upload Model To Flowscale Volume": UploadModelToFlowscaleVolume
 }

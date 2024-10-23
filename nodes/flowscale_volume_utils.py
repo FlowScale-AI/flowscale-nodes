@@ -9,7 +9,7 @@ class UploadModelToFlowscaleVolume:
   @classmethod
   def INPUT_TYPES(cls):
     return {
-      '"required"': {
+      "required": {
           "s3_url": ("STRING", {"multiline": False}),
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"})
       }
