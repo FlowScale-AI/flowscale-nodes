@@ -40,7 +40,6 @@ class UploadModelToFlowscaleVolume:
       "X-Team": TEAM_ID,
     }
     body = {
-      "name": os.path.basename(s3_url),
       "path": path_in_volume,
       "download_url": s3_url,
       "upload_type": "lora",
