@@ -19,6 +19,10 @@ class LoadModelFromCivitAI:
   CATEGORY = "Utilities"
 
   def load_model_from_civitai(self, model_url, path):
+      CIVITAI_API_KEY = os.getenv("CIVITAI_API_KEY")
+      if not CIVITAI_API_KEY:
+          raise Exception("CivitAI API key not set")
+        
       if os.path.isdir(path):
         filename = os.path.basename(model_url)
         full_path = os.path.join(path, filename)
