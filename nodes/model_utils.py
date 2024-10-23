@@ -30,8 +30,9 @@ class LoadModelFromCivitAI:
       else:
         full_path = path
       
+      modified_download_url = model_url + ("&" if "?" in model_url else "?") + "token=" + CIVITAI_API_KEY
       print(f"Downloading model from CivitAI: {model_url} into {full_path}")
-      command = f"wget -O {full_path} {model_url}"
+      command = f"wget -O {full_path} {modified_download_url}"
       result = os.system(command)
       
       if result != 0:
