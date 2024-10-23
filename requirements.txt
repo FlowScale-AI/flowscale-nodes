@@ -2,3 +2,4 @@ aiofiles
 aiohttp
 boto3
 httpx
+python-dotenv
