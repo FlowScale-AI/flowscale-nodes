@@ -17,6 +17,9 @@ class UploadModelToS3:
     return {
       "required": {
           "filepath": ("STRING", {"forceInput": True})
+      },
+      "optional": {
+          "model_name": ("STRING",)
       }
     }
     
@@ -25,7 +28,7 @@ class UploadModelToS3:
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
   
-  def upload_model_to_s3(self, filepath):    
+  def upload_model_to_s3(self, filepath, model_name=None):    
     if filepath.startswith("./") or filepath.startswith("../"):
         filepath = filepath.lstrip("./").lstrip("../")
     if filepath.startswith("/") or filepath.startswith("\\"):
@@ -45,7 +48,14 @@ class UploadModelToS3:
         region_name=AWS_REGION
     )
     
-    s3_key = os.path.join("models", CONTAINER_ID, os.path.basename(absolute_filepath))
+    if model_name:
+      if "." not in model_name:
+        raise Exception("Model name must have a file extension")
+      s3_key = os.path.join("models", CONTAINER_ID, model_name)
+    else:
+      if "." not in os.path.basename(absolute_filepath):
+        absolute_filepath += ".safetensors"
+      s3_key = os.path.join("models", CONTAINER_ID, os.path.basename(absolute_filepath))
     
     try:
       s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
