@@ -4,7 +4,9 @@ from .api.io import *
 from .api.log import *
 
 from .nodes.s3_utils import UploadModelToS3
+from nodes.model_utils import LoadModelFromCivitAI
 
 NODE_CLASS_MAPPINGS = { 
-  "UploadModelToS3": UploadModelToS3
+  "UploadModelToS3": UploadModelToS3,
+  "LoadModelFromCivitAI": LoadModelFromCivitAI
 }
