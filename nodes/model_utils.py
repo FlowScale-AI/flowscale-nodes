@@ -1,5 +1,7 @@
 import os
 
+CIVITAI_API_KEY = os.environ.get("CIVITAI_API_KEY")
+
 class LoadModelFromCivitAI:
   """
   Load a model from CivitAI
@@ -19,7 +21,6 @@ class LoadModelFromCivitAI:
   CATEGORY = "Utilities"
 
   def load_model_from_civitai(self, model_url, path):
-      CIVITAI_API_KEY = os.getenv("CIVITAI_API_KEY")
       if not CIVITAI_API_KEY:
           raise Exception("CivitAI API key not set")
         

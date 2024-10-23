@@ -1,8 +1,14 @@
 import os
 import httpx
 
+VOLUME_ID = os.environ.get("FLOWSCALE_VOLUME_ID")
+CONTAINER_ID = os.environ.get("CONTAINER_ID")
+ACCESS_TOKEN = os.environ.get("FLOWSCALE_ACCESS_TOKEN")
+TEAM_ID = os.environ.get("FLOWSCALE_TEAM_ID")
+API_URL = os.environ.get("FLOWSCALE_API_URL")
+
 class UploadModelToFlowscaleVolume:
-  """
+  """ 
   Uploads a model to a Flowscale volume.
   """
   
@@ -20,12 +26,6 @@ class UploadModelToFlowscaleVolume:
   CATEGORY = "Utilities"
   
   def upload_model_to_flowscale_volume(self, s3_url, path_in_volume):
-    VOLUME_ID = os.getenv("FLOWSCALE_VOLUME_ID")
-    CONTAINER_ID = os.getenv("CONTAINER_ID")
-    ACCESS_TOKEN = os.getenv("FLOWSCALE_ACCESS_TOKEN")
-    TEAM_ID = os.getenv("FLOWSCALE_TEAM_ID")
-    API_URL = os.getenv("FLOWSCALE_API_URL")
-    
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials not set")
     

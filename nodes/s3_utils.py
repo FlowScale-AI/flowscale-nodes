@@ -1,6 +1,12 @@
 import os
 import boto3
 
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_S3_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_S3_SECRET_ACCESS_KEY")
+AWS_REGION = os.environ.get("AWS_S3_REGION", "us-east-1")
+S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME")
+CONTAINER_ID = os.environ.get("CONTAINER_ID")
+
 class UploadModelToS3:
   """
   Uploads a model to S3
@@ -18,13 +24,7 @@ class UploadModelToS3:
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
   
-  def upload_model_to_s3(self, filepath):
-    AWS_ACCESS_KEY_ID = os.getenv("AWS_S3_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_S3_SECRET_ACCESS_KEY")
-    AWS_REGION = os.getenv("AWS_S3_REGION", "us-east-1")
-    S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
-    CONTAINER_ID = os.getenv("CONTAINER_ID")
-    
+  def upload_model_to_s3(self, filepath):    
     if filepath.startswith("./") or filepath.startswith("../"):
         filepath = filepath.lstrip("./").lstrip("../")
     if filepath.startswith("/") or filepath.startswith("\\"):
