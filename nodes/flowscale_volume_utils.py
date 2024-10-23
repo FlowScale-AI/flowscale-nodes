@@ -22,6 +22,7 @@ class UploadModelToFlowscaleVolume:
     }
     
   RETURN_TYPES = ("STRING",)
+  RETURN_NAMES = ("status",)
   FUNCTION = "upload_model_to_flowscale_volume"
   CATEGORY = "Utilities"
   

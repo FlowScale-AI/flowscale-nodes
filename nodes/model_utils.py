@@ -17,6 +17,7 @@ class LoadModelFromCivitAI:
     }
     
   RETURN_TYPES = ("STRING",)
+  RETURN_NAMES = ("filepath",)
   FUNCTION = "load_model_from_civitai"
   CATEGORY = "Utilities"
 

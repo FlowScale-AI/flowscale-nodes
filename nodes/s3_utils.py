@@ -20,7 +20,8 @@ class UploadModelToS3:
       }
     }
     
-  RETURN_TYPES = ("STRING",)
+  RETURN_TYPES = ("STRING", "STRING")
+  RETURN_NAMES = ("download_url", "filepath")
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
   
