@@ -278,38 +278,39 @@ async def search_file(request):
         mime_type = "application/octet-stream"
         
     if file_extension.lower() in model_extensions:
-        AWS_ACCESS_KEY_ID = os.getenv("AWS_S3_ACCESS_KEY_ID")
-        AWS_SECRET_ACCESS_KEY = os.getenv("AWS_S3_SECRET_ACCESS_KEY")
-        AWS_REGION = os.getenv("AWS_S3_REGION", "us-east-1")
-        S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
+        pass
+        # AWS_ACCESS_KEY_ID = os.getenv("AWS_S3_ACCESS_KEY_ID")
+        # AWS_SECRET_ACCESS_KEY = os.getenv("AWS_S3_SECRET_ACCESS_KEY")
+        # AWS_REGION = os.getenv("AWS_S3_REGION", "us-east-1")
+        # S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
         
-        if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME]):
-            return web.json_response({
-                "error": "AWS credentials are required."
-            }, status=400, content_type='application/json')
+        # if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME]):
+        #     return web.json_response({
+        #         "error": "AWS credentials are required."
+        #     }, status=400, content_type='application/json')
         
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION
-        )
+        # s3_client = boto3.client(
+        #     's3',
+        #     aws_access_key_id=AWS_ACCESS_KEY_ID,
+        #     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        #     region_name=AWS_REGION
+        # )
         
-        s3_key = os.path.join("models", os.getenv("CONTAINER_ID"), os.path.basename(absolute_filepath))
+        # s3_key = os.path.join("models", os.getenv("CONTAINER_ID"), os.path.basename(absolute_filepath))
         
-        try: 
-            s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
+        # try: 
+        #     s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
             
-            download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
-            return web.json_response({
-                "message": "Model file uploaded successfully.",
-                "download_url": download_url
-            }, content_type='application/json')
-        except Exception as e:
-            logger.error(f"Error uploading model file: {e}")
-            return web.json_response({
-                "error": str(e)
-            }, status=500, content_type='application/json')
+        #     download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
+        #     return web.json_response({
+        #         "message": "Model file uploaded successfully.",
+        #         "download_url": download_url
+        #     }, content_type='application/json')
+        # except Exception as e:
+        #     logger.error(f"Error uploading model file: {e}")
+        #     return web.json_response({
+        #         "error": str(e)
+        #     }, status=500, content_type='application/json')
     
     else:
         try:
