@@ -18,6 +18,7 @@ class SaveModelToFlowscaleVolume:
     return {
       "required": {
           "model_type": (["lora", "controlnet", "vae", "unet", "other"],),
+          "model_name": ("STRING", {"multiline": False, "forceInput": True}),
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"})
       },
       "optional": {
@@ -33,7 +34,7 @@ class SaveModelToFlowscaleVolume:
   CATEGORY = "Utilities"
   OUTPUT_NODE = True
   
-  def upload_model_to_flowscale_volume(self, model_type, path_in_volume, huggingface_url=None, s3_url=None, civitai_url=None):
+  def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, huggingface_url=None, s3_url=None, civitai_url=None):
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials not set")
     
@@ -54,12 +55,19 @@ class SaveModelToFlowscaleVolume:
     body = {
       "path": path_in_volume,
       "download_url": download_url,
-      "upload_type": "lora",
+      "upload_type": model_type,
     }
         
     response = httpx.post(url, headers=headers, json=body)
     if response.status_code != 200:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
+    
+    with open(f'models/loras/{model_name}.txt', 'w') as f:
+      data = {
+        "lora_name": model_name,
+        "download_url": download_url,
+      }
+      f.write(json.dumps(data))
     
     return {"ui": {"text": download_url}, "result": (download_url,)}
     

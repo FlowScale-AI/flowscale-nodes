@@ -16,15 +16,13 @@ class UploadModelToS3:
   def INPUT_TYPES(cls):
     return {
       "required": {
-          "filepath": ("STRING", {"forceInput": True})
+          "filepath": ("STRING", {"forceInput": True}),
+          "model_name": ("STRING", {"forceInput": False})
       },
-      "optional": {
-          "model_name": ("STRING",)
-      }
     }
     
   RETURN_TYPES = ("STRING", "STRING")
-  RETURN_NAMES = ("download_url", "filepath")
+  RETURN_NAMES = ("download_url", "model_name")
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
   
@@ -60,6 +58,6 @@ class UploadModelToS3:
     try:
       s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
       download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
-      return (download_url, filepath,)
+      return (download_url, model_name,)
     except Exception as e:
       raise Exception(f"Failed to upload model to S3: {str(e)}")
