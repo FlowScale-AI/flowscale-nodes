@@ -144,7 +144,7 @@ async def fetch_path_contents(request):
     
     base_directory = os.getcwd()
         
-    BLACKLISTED_DIRECTORIES = ["models", "config", "custom_nodes", "api_server", "app", "comfy"]
+    BLACKLISTED_DIRECTORIES = ["config", "custom_nodes", "api_server", "app", "comfy"]
     
     sanitized_directory_name = os.path.normpath(directory_name).lstrip(os.sep).rstrip(os.sep)
     
