@@ -47,9 +47,8 @@ class UploadModelToS3:
     )
     
     if model_name:
-      print(f"Model name: {model_name}")
       if "." not in model_name:
-        raise Exception("Model name must have a file extension")
+        raise Exception(f"Model name {model_name} must have a file extension")
       s3_key = os.path.join("models", CONTAINER_ID, model_name)
     else:
       if "." not in os.path.basename(absolute_filepath):
