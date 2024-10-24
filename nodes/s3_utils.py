@@ -26,7 +26,7 @@ class UploadModelToS3:
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
   
-  def upload_model_to_s3(self, filepath, model_name=None):    
+  def upload_model_to_s3(self, filepath, model_name=None):
     if filepath.startswith("./") or filepath.startswith("../"):
         filepath = filepath.lstrip("./").lstrip("../")
     if filepath.startswith("/") or filepath.startswith("\\"):
@@ -47,6 +47,7 @@ class UploadModelToS3:
     )
     
     if model_name:
+      print(f"Model name: {model_name}")
       if "." not in model_name:
         raise Exception("Model name must have a file extension")
       s3_key = os.path.join("models", CONTAINER_ID, model_name)
