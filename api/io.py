@@ -228,7 +228,7 @@ async def search_file(request):
         ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
         ".gif",
         ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg", ".webp", ".avif", ".jfif",
-        ".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"
+        ".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl",
         ".txt", ".pdf", ".docx",
     ]
     
@@ -246,7 +246,6 @@ async def search_file(request):
             if any(part in BLACKLISTED_DIRECTORIES for part in path_parts):
                 continue
             
-            print(candidate_absolute_path)
             if os.path.isfile(candidate_absolute_path):
                 candidates.append(candidate_absolute_path)
                 break
@@ -254,7 +253,6 @@ async def search_file(request):
         if candidates:
             break
     
-    print(candidates)
     if not candidates:
         return web.json_response({
             "error": "File not found."
