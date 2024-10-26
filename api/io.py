@@ -228,8 +228,8 @@ async def search_file(request):
         ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
         ".gif",
         ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg", ".webp", ".avif", ".jfif",
-        ".txt", ".pdf", ".docx",
         ".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"
+        ".txt", ".pdf", ".docx",
     ]
     
     candidates = []
