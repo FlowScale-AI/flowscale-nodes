@@ -208,6 +208,7 @@ async def search_file(request):
         }, status=400, content_type='application/json')
         
     absolute_filepath = os.path.abspath(os.path.join(base_directory, sanitized_filepath))
+    print(absolute_filepath)
     
     if not absolute_filepath.startswith(base_directory):
         return web.json_response({
@@ -251,7 +252,8 @@ async def search_file(request):
         
         if candidates:
             break
-        
+    
+    print(candidates)
     if not candidates:
         return web.json_response({
             "error": "File not found."
