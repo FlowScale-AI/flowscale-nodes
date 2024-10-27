@@ -48,6 +48,18 @@ class SaveModelToFlowscaleVolume:
     elif civitai_url:
       download_url = civitai_url
     
+    # Create root folder
+    url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder?access_token={ACCESS_TOKEN}"
+    headers = {
+      "X-Team": TEAM_ID,
+    }
+    body = {
+      "folder_name": "loras" if model_type == "lora" else model_type,
+      "path": "/",
+    }
+    httpx.post(url, headers=headers, json=body)
+    
+    # Add model to volume and fs
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload?access_token={ACCESS_TOKEN}"
     headers = {
       "X-Team": TEAM_ID,
