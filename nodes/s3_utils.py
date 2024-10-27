@@ -1,5 +1,9 @@
 import os
 import boto3
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_S3_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_S3_SECRET_ACCESS_KEY")
@@ -35,6 +39,7 @@ class UploadModelToS3:
     base_directory = os.getcwd()
     sanitized_filepath = os.path.normpath(filepath).lstrip(os.sep).rstrip(os.sep)
     absolute_filepath = os.path.abspath(os.path.join(base_directory, sanitized_filepath))
+    logger.info(f"Uploading model from {absolute_filepath}")
     
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME]):
       raise Exception("AWS credentials not set")
