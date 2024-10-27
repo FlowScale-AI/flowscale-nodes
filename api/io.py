@@ -282,11 +282,12 @@ async def search_file(request):
     if file_extension.lower() in model_extensions:
         with open(absolute_filepath.replace(file_extension, ".txt"), 'r') as f:
             content = f.read()
-    
+
+        logger.info(f"Reading model file: {absolute_filepath}")
+        logger.info(f"Model metadata: {content}")
+        
         data = json.loads(content)
-        return web.json_response({
-            json.dumps(data)
-        }, content_type='application/json')
+        return web.json_response(data, content_type='application/json')
         
     else:
         try:
