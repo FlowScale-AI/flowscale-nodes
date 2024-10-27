@@ -75,6 +75,8 @@ class SaveModelToFlowscaleVolume:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
     
     with open(f'output/{model_name}.txt', 'w') as f:
+      if "." not in model_name:
+        model_name += ".safetensors"
       data = {
         "lora_name": model_name,
         "download_url": download_url,
