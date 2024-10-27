@@ -74,7 +74,7 @@ class SaveModelToFlowscaleVolume:
     if response.status_code != 200:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
     
-    with open(f'models/loras/{model_name}.txt', 'w') as f:
+    with open(f'output/{model_name}.txt', 'w') as f:
       data = {
         "lora_name": model_name,
         "download_url": download_url,
