@@ -52,7 +52,7 @@ class UploadModelToS3:
     )
     
     if model_name:
-      if "." not in model_name:
+      if "." not in model_name and "." not in os.path.basename(absolute_filepath):
         absolute_filepath += ".safetensors"
       s3_key = os.path.join("models", CONTAINER_ID, model_name)
     else:
