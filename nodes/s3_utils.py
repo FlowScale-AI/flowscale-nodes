@@ -59,15 +59,18 @@ class UploadModelToPublicS3:
     )
     
     if model_name:
-      if not os.path.isfile(absolute_filepath) and os.path.isdir(absolute_filepath):
-        absolute_filepath = os.path.join(absolute_filepath, model_name + '.safetensors')
-      elif "." not in model_name and "." not in os.path.basename(absolute_filepath):
-          absolute_filepath += ".safetensors"
-          
       if "." not in model_name:
           modified_model_name = model_name + ".safetensors"
       else:
           modified_model_name = model_name
+          
+      if os.path.isdir(os.path.join(base_directory, sanitized_filepath)):
+          absolute_filepath = os.path.join(base_directory, sanitized_filepath, f"{modified_model_name}.safetensors")
+      else:
+          absolute_filepath = os.path.join(base_directory, sanitized_filepath)
+          if "." not in os.path.basename(absolute_filepath):
+              absolute_filepath += ".safetensors"
+
       s3_key = os.path.join("models", modified_model_name)
     else:
       if "." not in os.path.basename(absolute_filepath):
@@ -130,26 +133,29 @@ class UploadModelToPrivateS3:
         )
 
         if model_name:
-            if not os.path.isfile(absolute_filepath) and os.path.isdir(absolute_filepath):
-              absolute_filepath = os.path.join(absolute_filepath, model_name + '.safetensors')
-            elif "." not in model_name and "." not in os.path.basename(absolute_filepath):
-                absolute_filepath += ".safetensors"
-                
-            if "." not in model_name:
-                modified_model_name = model_name + ".safetensors"
-            else:
-                modified_model_name = model_name
-            s3_key = os.path.join("models", modified_model_name)
-        else:
+          if "." not in model_name:
+            modified_model_name = model_name + ".safetensors"
+          else:
+            modified_model_name = model_name
+              
+          if os.path.isdir(os.path.join(base_directory, sanitized_filepath)):
+            absolute_filepath = os.path.join(base_directory, sanitized_filepath, f"{modified_model_name}.safetensors")
+          else:
+            absolute_filepath = os.path.join(base_directory, sanitized_filepath)
             if "." not in os.path.basename(absolute_filepath):
                 absolute_filepath += ".safetensors"
-            s3_key = os.path.join("models", os.path.basename(absolute_filepath))
+
+          s3_key = os.path.join("models", modified_model_name)
+        else:
+          if "." not in os.path.basename(absolute_filepath):
+              absolute_filepath += ".safetensors"
+          s3_key = os.path.join("models", os.path.basename(absolute_filepath))
 
         try:
-            s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
-            return (s3_key, )
+          s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
+          return (s3_key, )
         except Exception as e:
-            raise Exception(f"Failed to upload model to S3: {str(e)}")
+          raise Exception(f"Failed to upload model to S3: {str(e)}")
 
 
 class LoadModelFromPublicS3:
