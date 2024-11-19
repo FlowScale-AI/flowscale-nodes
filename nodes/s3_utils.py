@@ -33,7 +33,7 @@ class UploadModelToPublicS3:
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
   
-  def upload_model_to_s3(self, filepath, model_name=None, file):
+  def upload_model_to_s3(self, filepath, model_name=None, file=None):
     if filepath.startswith("./") or filepath.startswith("../"):
         filepath = filepath.lstrip("./").lstrip("../")
     if filepath.startswith("/") or filepath.startswith("\\"):
