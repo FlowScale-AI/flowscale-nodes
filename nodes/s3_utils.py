@@ -24,7 +24,7 @@ class UploadModelToPublicS3:
           "model_name": ("STRING", {"forceInput": False})
       },
       "optional": {
-          "file": ("ANY", ),
+          "file": ("*", ),
       }
     }
     
@@ -86,9 +86,14 @@ class UploadModelToPrivateS3:
                 "model_name": ("STRING", {"forceInput": False})
             },
             "optional": {
-                "file": ("ANY", ),
+                "file": ("*", ),
             }
         }
+    
+    @classmethod
+    def VALIDATE_INPUTS(s, input_types):
+        return True
+
 
     RETURN_TYPES = ("STRING", )
     RETURN_NAMES = ("s3_key", )
@@ -148,6 +153,11 @@ class LoadModelFromPublicS3:
                 "save_path": ("STRING", {"forceInput": True}),
             },
         }
+
+    @classmethod
+    def VALIDATE_INPUTS(s, input_types):
+        return True
+
 
     RETURN_TYPES = ("STRING", )
     RETURN_NAMES = ("save_path", )
