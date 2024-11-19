@@ -31,6 +31,7 @@ class UploadModelToPublicS3:
   RETURN_NAMES = ("download_url", "model_name")
   FUNCTION = "upload_model_to_s3"
   CATEGORY = "Utilities"
+  OUTPUT_NODE = True
   
   def upload_model_to_s3(self, filepath, model_name=None, file=None):
     if filepath.startswith("./") or filepath.startswith("../"):
@@ -98,6 +99,7 @@ class UploadModelToPrivateS3:
     RETURN_NAMES = ("s3_key", )
     FUNCTION = "upload_model_to_s3"
     CATEGORY = "Utilities"
+    OUTPUT_NODE = True
 
     def upload_model_to_s3(self, filepath, model_name=None, file=None):
         if filepath.startswith("./") or filepath.startswith("../"):
