@@ -26,6 +26,10 @@ class UploadModelToPublicS3:
           "file": ("*", ),
       }
     }
+
+  @classmethod
+  def VALIDATE_INPUTS(s, input_types):
+      return True
     
   RETURN_TYPES = ("STRING", "STRING")
   RETURN_NAMES = ("download_url", "model_name")
@@ -55,10 +59,15 @@ class UploadModelToPublicS3:
     )
     
     if model_name:
-      if "." not in model_name and "." not in os.path.basename(absolute_filepath):
-        absolute_filepath += ".safetensors"
+      if not os.path.isfile(absolute_filepath) and os.path.isdir(absolute_filepath):
+        absolute_filepath = os.path.join(absolute_filepath, model_name + '.safetensors')
+      elif "." not in model_name and "." not in os.path.basename(absolute_filepath):
+          absolute_filepath += ".safetensors"
+          
       if "." not in model_name:
-        modified_model_name = model_name + ".safetensors"
+          modified_model_name = model_name + ".safetensors"
+      else:
+          modified_model_name = model_name
       s3_key = os.path.join("models", modified_model_name)
     else:
       if "." not in os.path.basename(absolute_filepath):
@@ -94,7 +103,6 @@ class UploadModelToPrivateS3:
     def VALIDATE_INPUTS(s, input_types):
         return True
 
-
     RETURN_TYPES = ("STRING", )
     RETURN_NAMES = ("s3_key", )
     FUNCTION = "upload_model_to_s3"
@@ -122,8 +130,11 @@ class UploadModelToPrivateS3:
         )
 
         if model_name:
-            if "." not in model_name and "." not in os.path.basename(absolute_filepath):
+            if not os.path.isfile(absolute_filepath) and os.path.isdir(absolute_filepath):
+              absolute_filepath = os.path.join(absolute_filepath, model_name + '.safetensors')
+            elif "." not in model_name and "." not in os.path.basename(absolute_filepath):
                 absolute_filepath += ".safetensors"
+                
             if "." not in model_name:
                 modified_model_name = model_name + ".safetensors"
             else:
