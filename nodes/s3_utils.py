@@ -9,7 +9,6 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_S3_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_S3_SECRET_ACCESS_KEY")
 AWS_REGION = os.environ.get("AWS_S3_REGION", "us-east-1")
 S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME")
-CONTAINER_ID = os.environ.get("CONTAINER_ID")
 
 class UploadModelToPublicS3:
   """
@@ -59,11 +58,11 @@ class UploadModelToPublicS3:
         absolute_filepath += ".safetensors"
       if "." not in model_name:
         modified_model_name = model_name + ".safetensors"
-      s3_key = os.path.join("models", CONTAINER_ID, modified_model_name)
+      s3_key = os.path.join("models", modified_model_name)
     else:
       if "." not in os.path.basename(absolute_filepath):
         absolute_filepath += ".safetensors"
-      s3_key = os.path.join("models", CONTAINER_ID, os.path.basename(absolute_filepath))
+      s3_key = os.path.join("models", os.path.basename(absolute_filepath))
     
     try:
       s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
@@ -127,11 +126,11 @@ class UploadModelToPrivateS3:
                 modified_model_name = model_name + ".safetensors"
             else:
                 modified_model_name = model_name
-            s3_key = os.path.join("models", CONTAINER_ID, modified_model_name)
+            s3_key = os.path.join("models", modified_model_name)
         else:
             if "." not in os.path.basename(absolute_filepath):
                 absolute_filepath += ".safetensors"
-            s3_key = os.path.join("models", CONTAINER_ID, os.path.basename(absolute_filepath))
+            s3_key = os.path.join("models", os.path.basename(absolute_filepath))
 
         try:
             s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
