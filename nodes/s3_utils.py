@@ -20,7 +20,7 @@ class UploadModelToPublicS3:
   def INPUT_TYPES(cls):
     return {
       "required": {
-          "filepath": ("STRING", {"forceInput": True}),
+          "filepath": ("STRING", {"forceInput": False}),
           "model_name": ("STRING", {"forceInput": False})
       },
       "optional": {
@@ -82,7 +82,7 @@ class UploadModelToPrivateS3:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "filepath": ("STRING", {"forceInput": True}),
+                "filepath": ("STRING", {"forceInput": False}),
                 "model_name": ("STRING", {"forceInput": False})
             },
             "optional": {
@@ -149,8 +149,8 @@ class LoadModelFromPublicS3:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "download_url": ("STRING", {"forceInput": True}),
-                "save_path": ("STRING", {"forceInput": True}),
+                "download_url": ("STRING", {"forceInput": False}),
+                "save_path": ("STRING", {"forceInput": False}),
             },
         }
 
@@ -187,8 +187,8 @@ class LoadModelFromPrivateS3:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "s3_key": ("STRING", {"forceInput": True}),
-                "save_path": ("STRING", {"forceInput": True}),
+                "s3_key": ("STRING", {"forceInput": False}),
+                "save_path": ("STRING", {"forceInput": False}),
             },
         }
 
