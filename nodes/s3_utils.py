@@ -2,6 +2,8 @@ import os
 import boto3
 import logging
 
+import httpx
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -45,8 +47,6 @@ class UploadModelToPublicS3:
 
     base_directory = os.getcwd()
     sanitized_filepath = os.path.normpath(filepath).lstrip(os.sep).rstrip(os.sep)
-    absolute_filepath = os.path.abspath(os.path.join(base_directory, sanitized_filepath))
-    logger.info(f"Uploading model from {absolute_filepath}")
     
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME]):
       raise Exception("AWS credentials not set")
@@ -63,21 +63,24 @@ class UploadModelToPublicS3:
           modified_model_name = model_name + ".safetensors"
       else:
           modified_model_name = model_name
-          
+      
+      logger.info(os.path.join(base_directory, sanitized_filepath))
       if os.path.isdir(os.path.join(base_directory, sanitized_filepath)):
           absolute_filepath = os.path.join(base_directory, sanitized_filepath, modified_model_name)
+          logger.info(f"Direcory - Uploading model from {absolute_filepath}")
       else:
           absolute_filepath = os.path.join(base_directory, sanitized_filepath)
           if "." not in os.path.basename(absolute_filepath):
               absolute_filepath += ".safetensors"
+          logger.info(f"File - Uploading model from {absolute_filepath}")
       
       logger.info(f"Uploading model from {absolute_filepath}")
       s3_key = os.path.join("models", modified_model_name)
     else:
       if "." not in os.path.basename(absolute_filepath):
         absolute_filepath += ".safetensors"
-      s3_key = os.path.join("models", os.path.basename(absolute_filepath))
-    
+        
+      s3_key = os.path.join("models", os.path.basename(absolute_filepath))    
     try:
       s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
       download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
@@ -185,7 +188,7 @@ class LoadModelFromPublicS3:
 
     def load_model_from_s3(self, download_url, save_path):
         try:
-            response = requests.get(download_url, stream=True)
+            response = httpx.get(download_url, stream=True)
             response.raise_for_status()
             with open(save_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -227,6 +230,17 @@ class LoadModelFromPrivateS3:
             region_name=AWS_REGION
         )
 
+        base_directory = os.getcwd()
+        save_path = os.path.join(base_directory, save_path)
+        
+        if os.path.isdir(os.path.dirname(save_path)):
+            file_name = os.path.basename(s3_key)
+            save_path = os.path.join(save_path, file_name)
+    
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
+
+        logger.info(f"Downloading model from S3 key {s3_key} and saving to {save_path}")
         try:
             s3_client.download_file(S3_BUCKET_NAME, s3_key, save_path)
             logger.info(f"Model downloaded from S3 key {s3_key} and saved to {save_path}")
