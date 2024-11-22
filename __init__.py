@@ -7,6 +7,7 @@ from .api.log import *
 from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3
 from .nodes.model_utils import LoadModelFromCivitAI
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
+from .nodes.time_utils import Delay
 
 load_dotenv()
 
@@ -17,7 +18,8 @@ NODE_CLASS_MAPPINGS = {
   "LoadModelFromPublicS3": LoadModelFromPublicS3,
   "LoadModelFromPrivateS3": LoadModelFromPrivateS3,
   "LoadModelFromCivitAI": LoadModelFromCivitAI,
-  "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume
+  "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
+  "Delay": Delay
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -27,5 +29,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   "LoadModelFromPublicS3": "[FS] Load Model from Public S3",
   "LoadModelFromPrivateS3": "[FS] Load Model to Private S3",
   "LoadModelFromCivitAI": "[FS] Load Model from CivitAI",
-  "SaveModelToFlowscaleVolume": "[FS] Save Model to Flowscale Volume"
+  "SaveModelToFlowscaleVolume": "[FS] Save Model to Flowscale Volume",
+  "Delay": "[FS] Delay"
 }
