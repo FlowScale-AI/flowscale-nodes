@@ -300,6 +300,55 @@ async def search_file(request):
                 "error": str(e)
             }, status=500, content_type='application/json')
 
+@PromptServer.instance.routes.delete("/flowscale/io/delete")
+async def delete_file(request):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    
+    filename = request.query.get('filename')
+    if not filename:
+        return web.json_response({
+            "error": "filename query parameter is required."
+        }, status=400, headers=headers)
+    
+    filename = os.path.basename(filename)
+    base_directory = os.getcwd()
+    
+    search_directories = ['output']
+    file_found = False
+    
+    for directory in search_directories:
+        file_path = os.path.join(base_directory, directory, filename)
+        normalized_path = os.path.normpath(file_path)
+        
+        if not normalized_path.startswith(base_directory):
+            continue
+            
+        relative_path = os.path.relpath(normalized_path, base_directory)
+        path_parts = relative_path.split(os.sep)
+        if any(part in ["config", "custom_nodes", "api_server", "app", "comfy"] for part in path_parts):
+            continue
+        
+        try:
+            if os.path.exists(normalized_path) and os.path.isfile(normalized_path):
+                os.remove(normalized_path)
+                file_found = True
+                return web.json_response({
+                    "message": f"File {filename} deleted successfully"
+                }, headers=headers)
+        except Exception as e:
+            logger.error(f"Error deleting file {filename}: {e}")
+            return web.json_response({
+                "error": f"Error deleting file: {str(e)}"
+            }, status=500, headers=headers)
+    
+    if not file_found:
+        return web.json_response({
+            "error": "File not found"
+        }, status=404, headers=headers)
 
 def is_file_ready(file_path, max_delay=15):
     check_interval = 5
