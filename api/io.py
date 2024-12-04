@@ -358,26 +358,22 @@ async def purge_directory(request):
         'Access-Control-Allow-Headers': 'Content-Type',
     }
     
-    directory = 'output'
+    output_dir = 'output'
     base_directory = os.getcwd()
-    
-    if not directory.startswith(base_directory):
-        return web.json_response({
-            "error": "Invalid directory path."
-        }, status=400, headers=headers)
+    directory_path = os.path.abspath(os.path.join(base_directory, output_dir))
     
     try:
-        os.makedirs(directory, exist_ok=True)
-        for file in os.listdir(directory):
-            file_path = os.path.join(directory, file)
+        os.makedirs(directory_path, exist_ok=True)
+        for file in os.listdir(directory_path):
+            file_path = os.path.join(directory_path, file)
             if os.path.isfile(file_path):
                 os.remove(file_path)
         
         return web.json_response({
-            "message": f"Directory {directory} purged successfully."
+            "message": f"Directory purged successfully."
         }, headers=headers)
     except Exception as e:
-        logger.error(f"Error purging directory {directory}: {e}")
+        logger.error(f"Error purging directory: {e}")
         return web.json_response({
             "error": f"Error purging directory: {str(e)}"
         }, status=500, headers=headers)
