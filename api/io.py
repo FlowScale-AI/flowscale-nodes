@@ -349,6 +349,38 @@ async def delete_file(request):
         return web.json_response({
             "error": "File not found"
         }, status=404, headers=headers)
+        
+@PromptServer.instance.routes.delete("/flowscale/io/purge")
+async def purge_directory(request):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    
+    directory = 'output'
+    base_directory = os.getcwd()
+    
+    if not directory.startswith(base_directory):
+        return web.json_response({
+            "error": "Invalid directory path."
+        }, status=400, headers=headers)
+    
+    try:
+        os.makedirs(directory, exist_ok=True)
+        for file in os.listdir(directory):
+            file_path = os.path.join(directory, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        
+        return web.json_response({
+            "message": f"Directory {directory} purged successfully."
+        }, headers=headers)
+    except Exception as e:
+        logger.error(f"Error purging directory {directory}: {e}")
+        return web.json_response({
+            "error": f"Error purging directory: {str(e)}"
+        }, status=500, headers=headers)
 
 def is_file_ready(file_path, max_delay=15):
     check_interval = 5
