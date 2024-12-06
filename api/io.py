@@ -301,18 +301,12 @@ async def search_file(request):
             }, status=500, content_type='application/json')
 
 @PromptServer.instance.routes.delete("/flowscale/io/delete")
-async def delete_file(request):
-    headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    }
-    
+async def delete_file(request):   
     filename = request.query.get('filename')
     if not filename:
         return web.json_response({
             "error": "filename query parameter is required."
-        }, status=400, headers=headers)
+        }, status=400)
     
     filename = os.path.basename(filename)
     base_directory = os.getcwd()
@@ -338,26 +332,20 @@ async def delete_file(request):
                 file_found = True
                 return web.json_response({
                     "message": f"File {filename} deleted successfully"
-                }, headers=headers)
+                })
         except Exception as e:
             logger.error(f"Error deleting file {filename}: {e}")
             return web.json_response({
                 "error": f"Error deleting file: {str(e)}"
-            }, status=500, headers=headers)
+            }, status=500)
     
     if not file_found:
         return web.json_response({
             "error": "File not found"
-        }, status=404, headers=headers)
+        }, status=404)
         
 @PromptServer.instance.routes.delete("/flowscale/io/purge")
-async def purge_directory(request):
-    headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-    }
-    
+async def purge_directory(request):    
     output_dir = 'output'
     base_directory = os.getcwd()
     directory_path = os.path.abspath(os.path.join(base_directory, output_dir))
@@ -371,12 +359,12 @@ async def purge_directory(request):
         
         return web.json_response({
             "message": f"Directory purged successfully."
-        }, headers=headers)
+        })
     except Exception as e:
         logger.error(f"Error purging directory: {e}")
         return web.json_response({
             "error": f"Error purging directory: {str(e)}"
-        }, status=500, headers=headers)
+        }, status=500)
 
 def is_file_ready(file_path, max_delay=15):
     check_interval = 5
