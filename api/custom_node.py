@@ -9,6 +9,7 @@ import time
 import re
 import aiofiles
 import boto3
+import git
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -68,10 +69,12 @@ async def uninstall_node(request):
     """
     try:
         body = await request.json()
-        repo_name = body.get("repo_name")  # Name of the repository to uninstall
+        repo_url = body.get("repo_url")
 
-        if not repo_name:
-            return web.json_response({"error": "Repository name is required"}, status=400)
+        if not repo_url:
+            return web.json_response({"error": "Repository url is required"}, status=400)
+
+        repo_name = repo_url.split("?")[0].split("/")[-1]
 
         # Construct the path to the repository folder
         repo_path = os.path.join(CUSTOM_NODES_DIR, repo_name)
