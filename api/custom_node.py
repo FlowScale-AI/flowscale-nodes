@@ -10,6 +10,7 @@ import re
 import aiofiles
 import boto3
 import git
+import subprocess
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
