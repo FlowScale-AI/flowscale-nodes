@@ -3,3 +3,4 @@ aiohttp
 boto3
 httpx
 python-dotenv
+GitPython

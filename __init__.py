@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 from .api.io import * 
 from .api.log import *
+from .api.custom_node import *
 
 from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3
 from .nodes.model_utils import LoadModelFromCivitAI

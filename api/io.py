@@ -13,8 +13,6 @@ import boto3
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-logger.info("Loading Flowscale IO nodes...")
-
 mimetypes.add_type('image/webp', '.webp')
 
 @PromptServer.instance.routes.post("/flowscale/io/upload")
