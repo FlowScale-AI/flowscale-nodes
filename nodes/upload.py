@@ -1,35 +1,20 @@
-import folder_paths
 from PIL import Image, ImageOps
 import numpy as np
 import torch
 import json
 import comfy
 
+# https://drive.google.com/uc?export=download&id=1mzbjsiVO3B0jGPiRW2OzRveFY6oeUwaz
 class UploadImages:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "input_id": (
-                    "STRING",
-                    {"multiline": False, "default": "input_images"},
-                ),
                 "images": (
                     "STRING",
-                    {"multiline": False, "default": "[]"},
+                    {"multiline": True, "default": "[]"},
                 ),
             },
-            "optional": {
-                "default_value": ("IMAGE",),
-                "display_name": (
-                    "STRING",
-                    {"multiline": False, "default": ""},
-                ),
-                "description": (
-                    "STRING",
-                    {"multiline": True, "default": ""},
-                ),
-            }
         }
 
     RETURN_TYPES = ("IMAGE",)
@@ -46,7 +31,7 @@ class UploadImages:
         image_tensor = torch.from_numpy(image)[None,]
         return image_tensor
     
-    def run(self, input_id, images=None, default_value=None, display_name=None, description=None):
+    def run(self, images=None):
         import requests
         import zipfile
         import io
@@ -90,9 +75,6 @@ class UploadImages:
             print(f"Error processing images: {e}")
             pass
             
-        if default_value is not None and len(images_list) == 0:
-            processed_images.append(default_value)  # Assuming default_value is a pre-processed image tensor
-
         # Resize images if necessary and concatenate from MakeImageBatch in ImpactPack
         if processed_images:
             base_shape = processed_images[0].shape[1:]  # Get the shape of the first image for comparison
