@@ -9,8 +9,6 @@ import aiofiles
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-logger.info("Loading Flowscale Logger nodes...")
-
 root_path = os.path.dirname(os.path.abspath(__file__))
 two_dirs_up = os.path.dirname(os.path.dirname(root_path))
 log_files = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
