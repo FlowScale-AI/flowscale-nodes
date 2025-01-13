@@ -22,7 +22,6 @@ NODE_CLASS_MAPPINGS = {
   "LoadModelFromCivitAI": LoadModelFromCivitAI,
   "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
   "Delay": Delay,
-  "UploadImages": UploadImages
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -34,5 +33,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   "LoadModelFromCivitAI": "[FS] Load Model from CivitAI",
   "SaveModelToFlowscaleVolume": "[FS] Save Model to Flowscale Volume",
   "Delay": "[FS] Delay",
-  "UploadImages": "[FS] Upload Images"
 }
