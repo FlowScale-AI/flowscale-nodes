@@ -327,6 +327,7 @@ class UploadImageToS3:
             aws_secret_access_key=os.environ.get("AWS_S3_SECRET_ACCESS_KEY"),
             region_name=os.environ.get("AWS_S3_REGION", "us-east-1")
         )
+        self.region = os.environ.get("AWS_S3_REGION", "us-east-1")
         self.bucket_name = os.environ.get("AWS_S3_BUCKET_NAME")
 
     @classmethod
@@ -370,18 +371,19 @@ class UploadImageToS3:
             # Upload to S3
             s3_filename = f"{subfolder}/{local_file}" if subfolder else local_file
             try:
-                self.s3_client.upload_file(local_file_path, self.s3_bucket_name, s3_filename)
-                location = self.s3_client.get_bucket_location(Bucket=self.s3_bucket_name)['LocationConstraint']
-                s3_url = f"https://{self.bucket_name}.s3.{location}.amazonaws.com/{s3_filename}"
+                logger.info(f"Uploading file {local_file} to S3 bucket {self.bucket_name}...")
+                self.s3_client.upload_file(local_file_path, self.bucket_name, s3_filename)
+                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
                 s3_urls.append(s3_url)
                 results.append({
                     "filename": s3_filename,
                     "subfolder": subfolder,
                     "type": "output",
-                    "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.s3_bucket_name}."
+                    "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}."
                 })
-                logger.info(f"File {s3_filename} uploaded successfully to S3 bucket {self.s3_bucket_name}.")
+                logger.info(f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}.")
             except NoCredentialsError:
+                logger.error("AWS credentials not found in environment variables.")
                 results.append({
                     "filename": local_file,
                     "subfolder": subfolder,
@@ -389,6 +391,7 @@ class UploadImageToS3:
                     "error": "AWS credentials not found in environment variables."
                 })
             except PartialCredentialsError:
+                logger.error("Incomplete AWS credentials provided.")
                 results.append({
                     "filename": local_file,
                     "subfolder": subfolder,
@@ -396,6 +399,7 @@ class UploadImageToS3:
                     "error": "Incomplete AWS credentials provided."
                 })
             except S3UploadFailedError as e:
+                logger.error(f"Failed to upload file to S3: {str(e)}")
                 results.append({
                     "filename": local_file,
                     "subfolder": subfolder,
@@ -403,6 +407,7 @@ class UploadImageToS3:
                     "error": f"Failed to upload file to S3: {str(e)}"
                 })
             except Exception as e:
+                logger.error(f"An unexpected error occurred: {str(e)}")
                 results.append({
                     "filename": local_file,
                     "subfolder": subfolder,
