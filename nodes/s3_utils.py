@@ -418,3 +418,120 @@ class UploadImageToS3:
             counter += 1
 
         return {"ui": {"images": results}, "result": (",".join(s3_urls),)}
+
+
+class UploadMediaToS3FromLink:
+    def __init__(self):
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION
+        )
+        self.region = AWS_REGION
+        self.bucket_name = S3_BUCKET_NAME
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "link": ("STRING", {"default": "", "tooltip": "Direct image link to copy to S3"}),
+                "filename_prefix": ("STRING", {"default": "ComfyUI_Video", "tooltip": "Filename prefix for the S3 object"})
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("s3_url",)
+    FUNCTION = "upload_media_to_s3"
+    CATEGORY = "Utilities"
+    OUTPUT_NODE = True
+
+    def copy_link_to_s3(self, link, filename_prefix="copied_link", prompt=None, extra_pnginfo=None):
+        import httpx
+        import tempfile
+        import os
+        from uuid import uuid4
+
+        results = []
+        s3_urls = []
+
+        if not link:
+            error_msg = "No link provided."
+            logger.error(error_msg)
+            results.append({
+                "filename": None,
+                "type": "output",
+                "error": error_msg
+            })
+            return {"ui": {"images": results}, "result": ("",)}
+
+        # Create a temporary file to store downloaded content
+        unique_id = str(uuid4())
+        extension = os.path.splitext(link)[1] if "." in os.path.basename(link) else ".png"
+        temp_filename = f"{filename_prefix}_{unique_id}{extension}"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            local_file_path = os.path.join(temp_dir, temp_filename)
+            try:
+                logger.info(f"Downloading image from {link}...")
+                response = httpx.get(link)
+                response.raise_for_status()
+                with open(local_file_path, "wb") as f:
+                    f.write(response.content)
+                logger.info(f"Downloaded image from {link} to {local_file_path}.")
+            except httpx.HTTPError as e:
+                error_msg = f"Failed to download image from URL: {e}"
+                logger.error(error_msg)
+                results.append({
+                    "filename": temp_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+                return {"ui": {"images": results}, "result": ("",)}
+
+            # Upload the downloaded file to S3
+            try:
+                logger.info(f"Uploading file {temp_filename} to S3 bucket {self.bucket_name}...")
+                self.s3_client.upload_file(local_file_path, self.bucket_name, temp_filename)
+                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{temp_filename}"
+                s3_urls.append(s3_url)
+                results.append({
+                    "filename": temp_filename,
+                    "type": "output",
+                    "message": f"File {temp_filename} uploaded successfully to S3 bucket {self.bucket_name}."
+                })
+                logger.info(f"File {temp_filename} uploaded successfully to S3 bucket {self.bucket_name}.")
+            except NoCredentialsError:
+                error_msg = "AWS credentials not found in environment variables."
+                logger.error(error_msg)
+                results.append({
+                    "filename": temp_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+            except PartialCredentialsError:
+                error_msg = "Incomplete AWS credentials provided."
+                logger.error(error_msg)
+                results.append({
+                    "filename": temp_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+            except S3UploadFailedError as e:
+                error_msg = f"Failed to upload file to S3: {str(e)}"
+                logger.error(error_msg)
+                results.append({
+                    "filename": temp_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+            except Exception as e:
+                error_msg = f"An unexpected error occurred: {str(e)}"
+                logger.error(error_msg)
+                results.append({
+                    "filename": temp_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+
+        return {"ui": {"images": results}, "result": (",".join(s3_urls),)}
