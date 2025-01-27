@@ -1,7 +1,11 @@
 import os
 import boto3
 import logging
-
+import numpy as np
+from PIL import Image
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+from boto3.exceptions import S3UploadFailedError
+import folder_paths 
 import httpx
 
 logging.basicConfig(level=logging.INFO)
@@ -307,3 +311,100 @@ class LoadModelFromPrivateS3:
             return (save_path, )
         except Exception as e:
             raise Exception(f"Failed to download model from S3: {str(e)}")
+        
+        
+
+class UploadImageToS3:
+    """
+    Uploads images to S3 and returns download URLs
+    """
+
+    def __init__(self):
+        self.output_dir = folder_paths.get_output_directory()
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=os.environ.get("AWS_S3_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.environ.get("AWS_S3_SECRET_ACCESS_KEY"),
+            region_name=os.environ.get("AWS_S3_REGION", "us-east-1")
+        )
+        self.bucket_name = os.environ.get("AWS_S3_BUCKET_NAME")
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "images": ("IMAGE", {"tooltip": "The images to upload."}),
+                "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "Filename prefix for saved images"})
+            },
+            "hidden": {
+                "prompt": "PROMPT", 
+                "extra_pnginfo": "EXTRA_PNGINFO"
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("s3_urls",)
+    FUNCTION = "upload_images_to_s3"
+    CATEGORY = "Utilities"
+    OUTPUT_NODE = True
+  
+    def upload_images_to_s3(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
+        # Save images locally first
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(
+            filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
+        )
+        results = list()
+
+        for (batch_number, image) in enumerate(images):
+            # Convert tensor to PIL image
+            i = 255. * image.cpu().numpy()
+            img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+
+            # Save image locally
+            filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
+            local_file = f"{filename_with_batch_num}_{counter:05}_.png"
+            local_file_path = os.path.join(full_output_folder, local_file)
+            img.save(local_file_path, compress_level=4)
+
+            # Upload to S3
+            s3_filename = f"{subfolder}/{local_file}" if subfolder else local_file
+            try:
+                self.s3_client.upload_file(local_file_path, self.s3_bucket_name, s3_filename)
+                results.append({
+                    "filename": s3_filename,
+                    "subfolder": subfolder,
+                    "type": "output",
+                    "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.s3_bucket_name}."
+                })
+            except NoCredentialsError:
+                results.append({
+                    "filename": local_file,
+                    "subfolder": subfolder,
+                    "type": "output",
+                    "error": "AWS credentials not found in environment variables."
+                })
+            except PartialCredentialsError:
+                results.append({
+                    "filename": local_file,
+                    "subfolder": subfolder,
+                    "type": "output",
+                    "error": "Incomplete AWS credentials provided."
+                })
+            except S3UploadFailedError as e:
+                results.append({
+                    "filename": local_file,
+                    "subfolder": subfolder,
+                    "type": "output",
+                    "error": f"Failed to upload file to S3: {str(e)}"
+                })
+            except Exception as e:
+                results.append({
+                    "filename": local_file,
+                    "subfolder": subfolder,
+                    "type": "output",
+                    "error": f"An unexpected error occurred: {str(e)}"
+                })
+
+            counter += 1
+
+        return {"ui": {"images": results}}

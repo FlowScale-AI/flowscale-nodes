@@ -4,3 +4,6 @@ boto3
 httpx
 python-dotenv
 GitPython
+botocore
+pillow
+numpy
