@@ -446,7 +446,7 @@ class UploadMediaToS3FromLink:
     CATEGORY = "Utilities"
     OUTPUT_NODE = True
 
-    def copy_link_to_s3(self, link, filename_prefix="copied_link", prompt=None, extra_pnginfo=None):
+    def upload_media_to_s3(self, link, filename_prefix="copied_link", prompt=None, extra_pnginfo=None):
         import httpx
         import tempfile
         import os
