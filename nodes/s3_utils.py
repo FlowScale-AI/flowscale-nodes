@@ -354,6 +354,7 @@ class UploadImageToS3:
             filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
         )
         results = list()
+        s3_urls = []
 
         for (batch_number, image) in enumerate(images):
             # Convert tensor to PIL image
@@ -370,12 +371,16 @@ class UploadImageToS3:
             s3_filename = f"{subfolder}/{local_file}" if subfolder else local_file
             try:
                 self.s3_client.upload_file(local_file_path, self.s3_bucket_name, s3_filename)
+                location = self.s3_client.get_bucket_location(Bucket=self.s3_bucket_name)['LocationConstraint']
+                s3_url = f"https://{self.bucket_name}.s3.{location}.amazonaws.com/{s3_filename}"
+                s3_urls.append(s3_url)
                 results.append({
                     "filename": s3_filename,
                     "subfolder": subfolder,
                     "type": "output",
                     "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.s3_bucket_name}."
                 })
+                logger.info(f"File {s3_filename} uploaded successfully to S3 bucket {self.s3_bucket_name}.")
             except NoCredentialsError:
                 results.append({
                     "filename": local_file,
@@ -407,4 +412,4 @@ class UploadImageToS3:
 
             counter += 1
 
-        return {"ui": {"images": results}}
+        return {"ui": {"images": results}, "result": (",".join(s3_urls),)}
