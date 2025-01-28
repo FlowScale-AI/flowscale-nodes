@@ -335,11 +335,10 @@ class UploadImageToS3:
         return {
             "required": {
                 "images": ("IMAGE", {"tooltip": "The images to upload."}),
-                "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "Filename prefix for saved images"})
-            },
-            "hidden": {
-                "prompt": "PROMPT", 
-                "extra_pnginfo": "EXTRA_PNGINFO"
+                "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "Filename for saved images"}),            },
+            "optional": {
+                "user_id": ("STRING", {"default": "flowscale_user", "tooltip": "User ID to add to metadata"}),
+                "identifier": ("STRING", {"default": "default", "tooltip": "Identifier to add to metadata"}),
             },
         }
 
@@ -349,8 +348,7 @@ class UploadImageToS3:
     CATEGORY = "Utilities"
     OUTPUT_NODE = True
   
-    def upload_images_to_s3(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
-        # Save images locally first
+    def upload_images_to_s3(self, images, filename_prefix="ComfyUI", user_id="flowscale_user", identifier="default"):
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(
             filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
         )
@@ -358,7 +356,6 @@ class UploadImageToS3:
         s3_urls = []
 
         for (batch_number, image) in enumerate(images):
-            # Convert tensor to PIL image
             i = 255. * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
 
@@ -369,15 +366,19 @@ class UploadImageToS3:
             img.save(local_file_path, compress_level=4)
 
             # Upload to S3
-            s3_filename = f"{subfolder}/{local_file}" if subfolder else local_file
+            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}" + local_file
             try:
                 logger.info(f"Uploading file {local_file} to S3 bucket {self.bucket_name}...")
-                self.s3_client.upload_file(local_file_path, self.bucket_name, s3_filename)
+                self.s3_client.upload_file(
+                    local_file_path, 
+                    self.bucket_name, 
+                    s3_filename,
+                    ExtraArgs={"Metadata": {"user_id": user_id, "identifier": identifier}}
+                )
                 s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
                 s3_urls.append(s3_url)
                 results.append({
                     "filename": s3_filename,
-                    "subfolder": subfolder,
                     "type": "output",
                     "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}."
                 })
@@ -438,6 +439,10 @@ class UploadMediaToS3FromLink:
                 "link": ("STRING", {"default": "", "tooltip": "Direct image link to copy to S3"}),
                 "filename_prefix": ("STRING", {"default": "ComfyUI_Video", "tooltip": "Filename prefix for the S3 object"})
             },
+            "optional": {
+                "user_id": ("STRING", {"default": "flowscale_user", "tooltip": "User ID to add to metadata"}),
+                "identifier": ("STRING", {"default": "default", "tooltip": "Identifier to add to metadata"}),
+            }
         }
 
     RETURN_TYPES = ("STRING",)
@@ -446,7 +451,7 @@ class UploadMediaToS3FromLink:
     CATEGORY = "Utilities"
     OUTPUT_NODE = True
 
-    def upload_media_to_s3(self, link, filename_prefix="copied_link", prompt=None, extra_pnginfo=None):
+    def upload_media_to_s3(self, link, filename_prefix="default", user_id="flowscale_user", identifier="default"):
         import httpx
         import tempfile
         import os
@@ -465,7 +470,6 @@ class UploadMediaToS3FromLink:
             })
             return {"ui": {"images": results}, "result": ("",)}
 
-        # Create a temporary file to store downloaded content
         unique_id = str(uuid4())
         extension = os.path.splitext(link)[1] if "." in os.path.basename(link) else ".png"
         temp_filename = f"{filename_prefix}_{unique_id}{extension}"
@@ -490,22 +494,27 @@ class UploadMediaToS3FromLink:
                 return {"ui": {"images": results}, "result": ("",)}
 
             # Upload the downloaded file to S3
+            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}" + temp_filename
             try:
-                logger.info(f"Uploading file {temp_filename} to S3 bucket {self.bucket_name}...")
-                self.s3_client.upload_file(local_file_path, self.bucket_name, temp_filename)
-                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{temp_filename}"
+                self.s3_client.upload_file(
+                    local_file_path,
+                    self.bucket_name,
+                    s3_filename,
+                    ExtraArgs={"Metadata": {"user_id": user_id, "identifier": identifier}}
+                )
+                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
                 s3_urls.append(s3_url)
                 results.append({
-                    "filename": temp_filename,
+                    "filename": s3_filename,
                     "type": "output",
-                    "message": f"File {temp_filename} uploaded successfully to S3 bucket {self.bucket_name}."
+                    "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}."
                 })
-                logger.info(f"File {temp_filename} uploaded successfully to S3 bucket {self.bucket_name}.")
+                logger.info(f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}.")
             except NoCredentialsError:
                 error_msg = "AWS credentials not found in environment variables."
                 logger.error(error_msg)
                 results.append({
-                    "filename": temp_filename,
+                    "filename": s3_filename,
                     "type": "output",
                     "error": error_msg
                 })
@@ -513,7 +522,7 @@ class UploadMediaToS3FromLink:
                 error_msg = "Incomplete AWS credentials provided."
                 logger.error(error_msg)
                 results.append({
-                    "filename": temp_filename,
+                    "filename": s3_filename,
                     "type": "output",
                     "error": error_msg
                 })
@@ -521,7 +530,7 @@ class UploadMediaToS3FromLink:
                 error_msg = f"Failed to upload file to S3: {str(e)}"
                 logger.error(error_msg)
                 results.append({
-                    "filename": temp_filename,
+                    "filename": s3_filename,
                     "type": "output",
                     "error": error_msg
                 })
@@ -529,7 +538,7 @@ class UploadMediaToS3FromLink:
                 error_msg = f"An unexpected error occurred: {str(e)}"
                 logger.error(error_msg)
                 results.append({
-                    "filename": temp_filename,
+                    "filename": s3_filename,
                     "type": "output",
                     "error": error_msg
                 })
