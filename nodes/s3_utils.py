@@ -366,9 +366,8 @@ class UploadImageToS3:
             img.save(local_file_path, compress_level=4)
 
             # Upload to S3
-            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}" + local_file
+            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}_{local_file}"
             try:
-                logger.info(f"Uploading file {local_file} to S3 bucket {self.bucket_name}...")
                 self.s3_client.upload_file(
                     local_file_path, 
                     self.bucket_name, 
@@ -494,7 +493,7 @@ class UploadMediaToS3FromLink:
                 return {"ui": {"images": results}, "result": ("",)}
 
             # Upload the downloaded file to S3
-            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}" + temp_filename
+            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}_{temp_filename}"
             try:
                 self.s3_client.upload_file(
                     local_file_path,
@@ -610,7 +609,7 @@ class UploadTextToS3:
                     f.write(text)
                 logger.info(f"Created temporary text file at {local_file_path}")
 
-                s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}" + txt_filename
+                s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}_{txt_filename}"
                 # Upload to S3
                 self.s3_client.upload_file(
                     local_file_path,
