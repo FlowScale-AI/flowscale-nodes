@@ -544,3 +544,119 @@ class UploadMediaToS3FromLink:
                 })
 
         return {"ui": {"images": results}, "result": (",".join(s3_urls),)}
+
+class UploadTextToS3:
+    """
+    Creates a text file from input string and uploads to S3 with user metadata
+    """
+    
+    def __init__(self):
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION
+        )
+        self.region = AWS_REGION
+        self.bucket_name = S3_BUCKET_NAME
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "text": ("STRING", {"multiline": True, "default": "", "tooltip": "Text content to save"}),
+                "filename_prefix": ("STRING", {"default": "ComfyUI_Text", "tooltip": "Filename prefix for the text file"}),
+            },
+            "optional": {
+                "user_id": ("STRING", {"default": "flowscale_user", "tooltip": "User ID to add to metadata"}),
+                "identifier": ("STRING", {"default": "default", "tooltip": "Identifier to add to metadata"}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("s3_url",)
+    FUNCTION = "upload_text_to_s3"
+    CATEGORY = "Utilities"
+    OUTPUT_NODE = True
+
+    def upload_text_to_s3(self, text, filename_prefix="ComfyUI_Text", user_id="flowscale_user", identifier="default"):
+        import tempfile
+        import os
+        from uuid import uuid4
+
+        results = []
+        s3_urls = []
+
+        if not text.strip():
+            error_msg = "No text content provided"
+            logger.error(error_msg)
+            results.append({
+                "filename": None,
+                "type": "output",
+                "error": error_msg
+            })
+            return {"ui": {"texts": results}, "result": ("",)}
+
+        # Create temporary text file
+        unique_id = str(uuid4())
+        txt_filename = f"{filename_prefix}_{unique_id}.txt"
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            local_file_path = os.path.join(temp_dir, txt_filename)
+            
+            try:
+                # Write text to file
+                with open(local_file_path, "w", encoding="utf-8") as f:
+                    f.write(text)
+                logger.info(f"Created temporary text file at {local_file_path}")
+
+                s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}" + txt_filename
+                # Upload to S3
+                self.s3_client.upload_file(
+                    local_file_path,
+                    self.bucket_name,
+                    s3_filename,
+                    ExtraArgs={
+                        'Metadata': {
+                            'user_id': user_id,
+                            'identifier': identifier,
+                            'content-type': 'text/plain'
+                        }
+                    }
+                )
+                
+                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
+                s3_urls.append(s3_url)
+                results.append({
+                    "filename": s3_filename,
+                    "type": "output",
+                    "message": f"Text file {s3_filename} uploaded successfully with metadata"
+                })
+                logger.info(f"Text file uploaded to {s3_url}")
+                
+            except NoCredentialsError:
+                error_msg = "AWS credentials not found in environment variables"
+                logger.error(error_msg)
+                results.append({
+                    "filename": s3_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+            except S3UploadFailedError as e:
+                error_msg = f"S3 upload failed: {str(e)}"
+                logger.error(error_msg)
+                results.append({
+                    "filename": s3_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+            except Exception as e:
+                error_msg = f"Error processing text file: {str(e)}"
+                logger.error(error_msg)
+                results.append({
+                    "filename": s3_filename,
+                    "type": "output",
+                    "error": error_msg
+                })
+
+        return {"ui": {"texts": results}, "result": (",".join(s3_urls),)}
