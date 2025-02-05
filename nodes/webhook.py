@@ -32,14 +32,10 @@ class WebhookSender:
         try:
             logger.info("Sending to webhook")
             input_dict = {
-                "property_name_1": property_name_1,
-                "property_value_1": property_value_1,
-                "property_name_2": property_name_2,
-                "property_value_2": property_value_2,
-                "property_name_3": property_name_3,
-                "property_value_3": property_value_3,
-                "property_name_4": property_name_4,
-                "property_value_4": property_value_4,
+                property_name_1: property_value_1,
+                property_name_2: property_value_2,
+                property_name_3: property_value_3,
+                property_name_4: property_value_4,
             }
             
             if context:
