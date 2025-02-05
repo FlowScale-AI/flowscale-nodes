@@ -10,9 +10,14 @@ class WebhookSender:
         return {
             "required": {
                 "webhook_url": ("STRING",),
-                "property_name": ("STRING",),
-                "property_value": ("STRING",),
-                "identifier": ("STRING",),
+                "property_name_1": ("STRING",),
+                "property_value_1": ("STRING",),
+                "property_name_2": ("STRING",),
+                "property_value_2": ("STRING",),
+                "property_name_3": ("STRING",),
+                "property_value_3": ("STRING",),
+                "property_name_4": ("STRING",),
+                "property_value_4": ("STRING",),                
             },
             "optional": {
                 "context": ("STRING",),
@@ -23,10 +28,23 @@ class WebhookSender:
     FUNCTION = "send_to_webhook"
     CATEGORY = "Custom/Webhook"
 
-    def send_to_webhook(self, webhook_url, property_name, property_value, identifier, context=None):
+    def send_to_webhook(self, webhook_url, property_name_1, property_value_1, property_name_2, property_value_2, property_name_3, property_value_3, property_name_4, property_value_4, context=None):
         try:
             logger.info("Sending to webhook")
-            input_dict = {property_name: property_value, "identifier": identifier, "context": context}
+            input_dict = {
+                "property_name_1": property_name_1,
+                "property_value_1": property_value_1,
+                "property_name_2": property_name_2,
+                "property_value_2": property_value_2,
+                "property_name_3": property_name_3,
+                "property_value_3": property_value_3,
+                "property_name_4": property_name_4,
+                "property_value_4": property_value_4,
+            }
+            
+            if context:
+                input_dict["context"] = context
+                
             response = requests.post(webhook_url, json=input_dict)
             response.raise_for_status()
             logger.info(response.status_code)
