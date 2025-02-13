@@ -8,7 +8,9 @@ from .api.custom_node import *
 from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3, UploadImageToS3, UploadMediaToS3FromLink, UploadTextToS3
 from .nodes.model_utils import LoadModelFromCivitAI
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
-from .nodes.webhook import WebhookSender
+from .utilitynodes.webhook import WebhookSender
+from .utilitynodes.fileloader import FileLoaderNode
+from .utilitynodes.json_extractor import ExtractPropertyNode
 
 load_dotenv()
 
@@ -24,6 +26,8 @@ NODE_CLASS_MAPPINGS = {
   "LoadModelFromCivitAI": LoadModelFromCivitAI,
   "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
   "WebhookSender": WebhookSender,
+  "FileLoaderNode": FileLoaderNode,
+  "ExtractPropertyNode": ExtractPropertyNode,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -38,4 +42,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   "LoadModelFromCivitAI": "[FS] Load Model from CivitAI",
   "SaveModelToFlowscaleVolume": "[FS] Save Model to Flowscale Volume",
   "WebhookSender": "[FS] Send to Webhook",
+  "FileLoaderNode": "[FS] Load File",
+  "ExtractPropertyNode": "[FS] Extract Property",
 }

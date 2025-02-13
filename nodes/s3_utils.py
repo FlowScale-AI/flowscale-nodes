@@ -1,4 +1,5 @@
 import os
+import random
 import boto3
 import logging
 import numpy as np
@@ -342,8 +343,8 @@ class UploadImageToS3:
             },
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("s3_urls",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("s3_url", "s3_key")
     FUNCTION = "upload_images_to_s3"
     CATEGORY = "Utilities"
     OUTPUT_NODE = True
@@ -353,7 +354,6 @@ class UploadImageToS3:
             filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
         )
         results = list()
-        s3_urls = []
 
         for (batch_number, image) in enumerate(images):
             i = 255. * image.cpu().numpy()
@@ -366,26 +366,33 @@ class UploadImageToS3:
             img.save(local_file_path, compress_level=4)
 
             # Upload to S3
-            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}_{local_file}"
+            rand_num = random.randint(1111, 9999)
+            s3_key = f"duke_media/{user_id}/{user_id}_{identifier}_image_{rand_num}.png"
             try:
                 self.s3_client.upload_file(
                     local_file_path, 
                     self.bucket_name, 
-                    s3_filename,
+                    s3_key,
                     ExtraArgs={"Metadata": {"user_id": user_id, "identifier": identifier}}
                 )
-                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
-                s3_urls.append(s3_url)
+                
+                download_url = self.s3_client.generate_presigned_url(
+                    ClientMethod="get_object",
+                    Params={"Bucket": self.bucket_name, "Key": s3_key},
+                    ExpiresIn=3600,
+                )
+
                 results.append({
-                    "filename": s3_filename,
+                    "key": s3_key,
+                    "url": download_url,
                     "type": "output",
-                    "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}."
+                    "message": f"File {s3_key} uploaded successfully to S3 bucket {self.bucket_name}."
                 })
-                logger.info(f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}.")
+                logger.info(f"File {s3_key} uploaded successfully to S3 bucket {self.bucket_name}.")
             except NoCredentialsError:
                 logger.error("AWS credentials not found in environment variables.")
                 results.append({
-                    "filename": local_file,
+                    "filename": s3_key,
                     "subfolder": subfolder,
                     "type": "output",
                     "error": "AWS credentials not found in environment variables."
@@ -393,7 +400,7 @@ class UploadImageToS3:
             except PartialCredentialsError:
                 logger.error("Incomplete AWS credentials provided.")
                 results.append({
-                    "filename": local_file,
+                    "filename": s3_key,
                     "subfolder": subfolder,
                     "type": "output",
                     "error": "Incomplete AWS credentials provided."
@@ -401,7 +408,7 @@ class UploadImageToS3:
             except S3UploadFailedError as e:
                 logger.error(f"Failed to upload file to S3: {str(e)}")
                 results.append({
-                    "filename": local_file,
+                    "filename": s3_key,
                     "subfolder": subfolder,
                     "type": "output",
                     "error": f"Failed to upload file to S3: {str(e)}"
@@ -409,7 +416,7 @@ class UploadImageToS3:
             except Exception as e:
                 logger.error(f"An unexpected error occurred: {str(e)}")
                 results.append({
-                    "filename": local_file,
+                    "filename": s3_key,
                     "subfolder": subfolder,
                     "type": "output",
                     "error": f"An unexpected error occurred: {str(e)}"
@@ -417,7 +424,7 @@ class UploadImageToS3:
 
             counter += 1
 
-        return {"ui": {"images": results}, "result": (",".join(s3_urls),)}
+        return {"ui": {"images": results}, "result": (download_url, s3_key)}
 
 
 class UploadMediaToS3FromLink:
@@ -444,8 +451,8 @@ class UploadMediaToS3FromLink:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("s3_url",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("s3_url", "s3_key")
     FUNCTION = "upload_media_to_s3"
     CATEGORY = "Utilities"
     OUTPUT_NODE = True
@@ -457,7 +464,6 @@ class UploadMediaToS3FromLink:
         from uuid import uuid4
 
         results = []
-        s3_urls = []
 
         if not link:
             error_msg = "No link provided."
@@ -476,14 +482,14 @@ class UploadMediaToS3FromLink:
         with tempfile.TemporaryDirectory() as temp_dir:
             local_file_path = os.path.join(temp_dir, temp_filename)
             try:
-                logger.info(f"Downloading image from {link}...")
+                logger.info(f"Downloading media from {link}...")
                 response = httpx.get(link)
                 response.raise_for_status()
                 with open(local_file_path, "wb") as f:
                     f.write(response.content)
-                logger.info(f"Downloaded image from {link} to {local_file_path}.")
+                logger.info(f"Downloaded media from {link} to {local_file_path}.")
             except httpx.HTTPError as e:
-                error_msg = f"Failed to download image from URL: {e}"
+                error_msg = f"Failed to download media from URL: {e}"
                 logger.error(error_msg)
                 results.append({
                     "filename": temp_filename,
@@ -493,27 +499,38 @@ class UploadMediaToS3FromLink:
                 return {"ui": {"images": results}, "result": ("",)}
 
             # Upload the downloaded file to S3
-            s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}_{temp_filename}"
+            rand_num = random.randint(1111, 9999)
+            if extension == ".mp4":
+                media_type = "video"
+            else:
+                media_type = "image"
+            s3_key = f"duke_media/{user_id}/{user_id}_{identifier}_{media_type}_{rand_num}{extension}"
             try:
                 self.s3_client.upload_file(
                     local_file_path,
                     self.bucket_name,
-                    s3_filename,
+                    s3_key,
                     ExtraArgs={"Metadata": {"user_id": user_id, "identifier": identifier}}
                 )
-                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
-                s3_urls.append(s3_url)
+                
+                download_url = self.s3_client.generate_presigned_url(
+                    ClientMethod="get_object",
+                    Params={"Bucket": self.bucket_name, "Key": s3_key},
+                    ExpiresIn=3600,
+                )
+
                 results.append({
-                    "filename": s3_filename,
+                    "key": s3_key,
+                    "url": download_url,
                     "type": "output",
-                    "message": f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}."
+                    "message": f"File {s3_key} uploaded successfully to S3 bucket {self.bucket_name}."
                 })
-                logger.info(f"File {s3_filename} uploaded successfully to S3 bucket {self.bucket_name}.")
+                logger.info(f"File {s3_key} uploaded successfully to S3 bucket {self.bucket_name}.")
             except NoCredentialsError:
                 error_msg = "AWS credentials not found in environment variables."
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
@@ -521,7 +538,7 @@ class UploadMediaToS3FromLink:
                 error_msg = "Incomplete AWS credentials provided."
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
@@ -529,7 +546,7 @@ class UploadMediaToS3FromLink:
                 error_msg = f"Failed to upload file to S3: {str(e)}"
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
@@ -537,12 +554,12 @@ class UploadMediaToS3FromLink:
                 error_msg = f"An unexpected error occurred: {str(e)}"
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
 
-        return {"ui": {"images": results}, "result": (",".join(s3_urls),)}
+        return {"ui": {"images": results}, "result": (download_url, s3_key)}
 
 class UploadTextToS3:
     """
@@ -572,10 +589,10 @@ class UploadTextToS3:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("s3_url",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("s3_url", "s3_key")
     FUNCTION = "upload_text_to_s3"
-    CATEGORY = "Utilities"
+    CATEGORY = "S3"
     OUTPUT_NODE = True
 
     def upload_text_to_s3(self, text, filename_prefix="ComfyUI_Text", user_id="flowscale_user", identifier="default"):
@@ -584,7 +601,6 @@ class UploadTextToS3:
         from uuid import uuid4
 
         results = []
-        s3_urls = []
 
         if not text.strip():
             error_msg = "No text content provided"
@@ -609,12 +625,13 @@ class UploadTextToS3:
                     f.write(text)
                 logger.info(f"Created temporary text file at {local_file_path}")
 
-                s3_filename = f"duke_media/{identifier}/{user_id}_{identifier}_{txt_filename}"
+                rand_num = random.randint(1111, 9999)
+                s3_key = f"duke_media/{user_id}/{user_id}_{identifier}_text_{rand_num}.txt"
                 # Upload to S3
                 self.s3_client.upload_file(
                     local_file_path,
                     self.bucket_name,
-                    s3_filename,
+                    s3_key,
                     ExtraArgs={
                         'Metadata': {
                             'user_id': user_id,
@@ -623,21 +640,25 @@ class UploadTextToS3:
                         }
                     }
                 )
+
+                download_url = self.s3_client.generate_presigned_url(
+                    ClientMethod="get_object",
+                    Params={"Bucket": self.bucket_name, "Key": s3_key},
+                    ExpiresIn=3600,
+                )
                 
-                s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_filename}"
-                s3_urls.append(s3_url)
                 results.append({
-                    "filename": s3_filename,
+                    "key": s3_key,
+                    "url": download_url,
                     "type": "output",
-                    "message": f"Text file {s3_filename} uploaded successfully with metadata"
+                    "message": f"Text file {s3_key} uploaded successfully with metadata"
                 })
-                logger.info(f"Text file uploaded to {s3_url}")
                 
             except NoCredentialsError:
                 error_msg = "AWS credentials not found in environment variables"
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
@@ -645,7 +666,7 @@ class UploadTextToS3:
                 error_msg = f"S3 upload failed: {str(e)}"
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
@@ -653,9 +674,9 @@ class UploadTextToS3:
                 error_msg = f"Error processing text file: {str(e)}"
                 logger.error(error_msg)
                 results.append({
-                    "filename": s3_filename,
+                    "filename": s3_key,
                     "type": "output",
                     "error": error_msg
                 })
 
-        return {"ui": {"texts": results}, "result": (",".join(s3_urls),)}
+        return {"ui": {"texts": results}, "result": (download_url, s3_key)}

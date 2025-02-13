@@ -7,3 +7,4 @@ GitPython
 botocore
 pillow
 numpy
+PyPDF2
