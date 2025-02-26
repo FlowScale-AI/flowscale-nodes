@@ -11,13 +11,11 @@ logger = logging.getLogger(__name__)
 
 def get_most_recent_log_file():
     root_path = os.path.dirname(os.path.abspath(__file__))
-    two_dirs_up = os.path.dirname(os.path.dirname(root_path))
+    three_dirs_up = os.path.dirname(os.path.dirname(os.path.dirname(root_path)))
 
-    print("two_dirs_up", two_dirs_up)
-    comfyui_logs_main = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
-    comfy_logs_user_dir = glob.glob(os.path.join(two_dirs_up, 'user', 'comfyui*.log'))
+    comfyui_logs_main = glob.glob(os.path.join(three_dirs_up, 'comfyui*.log'))
+    comfy_logs_user_dir = glob.glob(os.path.join(three_dirs_up, 'user', 'comfyui*.log'))
 
-    print("user_path", os.path.join(two_dirs_up, 'user'))
     print("comfyui_logs_main", comfyui_logs_main)
     print("comfy_logs_user_dir", comfy_logs_user_dir)
 
@@ -25,7 +23,7 @@ def get_most_recent_log_file():
     print(log_files)
 
     log_files.sort(key=os.path.getmtime, reverse=True)
-    return log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
+    return log_files[0] if log_files else os.path.join(three_dirs_up, 'comfyui.log')
         
 @PromptServer.instance.routes.get("/flowscale/log/download")
 async def download_logs(request):
