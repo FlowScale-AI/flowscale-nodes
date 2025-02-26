@@ -13,12 +13,14 @@ def get_most_recent_log_file():
     root_path = os.path.dirname(os.path.abspath(__file__))
     two_dirs_up = os.path.dirname(os.path.dirname(root_path))
 
+    print("two_dirs_up", two_dirs_up)
     comfyui_logs_main = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
     comfy_logs_user_dir = glob.glob(os.path.join(two_dirs_up, 'user', 'comfyui*.log'))
 
+    print("user_path", os.path.join(two_dirs_up, 'user'))
     print("comfyui_logs_main", comfyui_logs_main)
     print("comfy_logs_user_dir", comfy_logs_user_dir)
-    
+
     log_files = comfyui_logs_main + comfy_logs_user_dir
     print(log_files)
 
