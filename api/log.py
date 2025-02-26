@@ -78,17 +78,10 @@ async def stream_logs(request):
         
     async def send_logs(comfyui_file_path, response, event_counter=1):
         try:
-            last_modified = os.path.getmtime(comfyui_file_path)
-
             async with aiofiles.open(comfyui_file_path, 'r') as log_file:
                 await log_file.seek(0, os.SEEK_END)
     
-                while True:
-                    current_modified = os.path.getmtime(comfyui_file_path)
-                    if current_modified != last_modified:
-                        logger.info("Log file modified")
-                        return
-                    
+                while True:                    
                     line = await log_file.readline()
                     if line:
                         await response.write(f"id: {event_counter}\ndata: {line}\n\n".encode('utf-8'))
