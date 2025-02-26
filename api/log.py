@@ -16,6 +16,7 @@ comfyui_logs_main = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
 comfy_logs_user_dir = glob.glob(os.path.join(two_dirs_up, 'user', 'comfyui*.log'))
 
 log_files = comfyui_logs_main + comfy_logs_user_dir
+print(log_files)
 
 log_files.sort(key=os.path.getmtime, reverse=True)
 comfyui_file_path = comfyui_file_path = log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
