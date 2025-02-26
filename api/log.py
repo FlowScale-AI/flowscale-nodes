@@ -16,11 +16,7 @@ def get_most_recent_log_file():
     comfyui_logs_main = glob.glob(os.path.join(three_dirs_up, 'comfyui*.log'))
     comfy_logs_user_dir = glob.glob(os.path.join(three_dirs_up, 'user', 'comfyui*.log'))
 
-    print("comfyui_logs_main", comfyui_logs_main)
-    print("comfy_logs_user_dir", comfy_logs_user_dir)
-
     log_files = comfyui_logs_main + comfy_logs_user_dir
-    print(log_files)
 
     log_files.sort(key=os.path.getmtime, reverse=True)
     return log_files[0] if log_files else os.path.join(three_dirs_up, 'comfyui.log')
@@ -44,7 +40,6 @@ async def download_logs(request):
 
     return web.FileResponse(path=comfyui_file_path, headers=headers)
         
-
 @PromptServer.instance.routes.get("/flowscale/log/stream")
 async def stream_logs(request):
     comfyui_file_path = get_most_recent_log_file()
@@ -53,34 +48,54 @@ async def stream_logs(request):
             "error": "Log file does not exist."
         }, status=404, content_type='application/json')
 
+    last_event_id = request.headers.get('Last-Event-ID', None)
+    logger.info(f"Last Event ID: {last_event_id}")
+
     response = web.StreamResponse(
         status=200, 
         reason="OK", 
         headers={
             'Content-Type': 'text/event-stream',  
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Headers': 'Content-Type, Last-Event-ID',
             }
         )
     await response.prepare(request)
 
-    last_200_lines = await read_last_n_lines(comfyui_file_path, 200)
-    for line in last_200_lines:
-        await response.write(f"data: {line}\n\n".encode('utf-8'))
+    await response.write(b"retry: 10000\n\n")
+
+    line_count = 200
+    if last_event_id and last_event_id.isdigit():
+        line_count = int(last_event_id)
         
-    async def send_logs():
+    last_n_lines = await read_last_n_lines(comfyui_file_path, line_count)
+    for i, line in enumerate(last_n_lines):
+        event_id = i + 1
+        await response.write(f"id: {event_id}\ndata: {line}\n\n".encode('utf-8'))
+        
+    async def send_logs(comfyui_file_path, response, event_counter=1):
         try:
+            last_modified = os.path.getmtime(comfyui_file_path)
+
             async with aiofiles.open(comfyui_file_path, 'r') as log_file:
                 await log_file.seek(0, os.SEEK_END)
     
                 while True:
+                    current_modified = os.path.getmtime(comfyui_file_path)
+                    if current_modified != last_modified:
+                        logger.info("Log file modified")
+                        return
+                    
                     line = await log_file.readline()
                     if line:
-                        await response.write(f"data: {line}\n\n".encode('utf-8'))
+                        await response.write(f"id: {event_counter}\ndata: {line}\n\n".encode('utf-8'))
                         await response.drain()
+                        event_counter += 1
                     else:
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(1)
                     
                     if response.task is None or response.task.done():
                         logger.info("Client disconnected")
