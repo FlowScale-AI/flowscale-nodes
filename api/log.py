@@ -9,21 +9,23 @@ import aiofiles
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-root_path = os.path.dirname(os.path.abspath(__file__))
-two_dirs_up = os.path.dirname(os.path.dirname(root_path))
+def get_most_recent_log_file():
+    root_path = os.path.dirname(os.path.abspath(__file__))
+    two_dirs_up = os.path.dirname(os.path.dirname(root_path))
 
-comfyui_logs_main = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
-comfy_logs_user_dir = glob.glob(os.path.join(two_dirs_up, 'user', 'comfyui*.log'))
+    comfyui_logs_main = glob.glob(os.path.join(two_dirs_up, 'comfyui*.log'))
+    comfy_logs_user_dir = glob.glob(os.path.join(two_dirs_up, 'user', 'comfyui*.log'))
 
-log_files = comfyui_logs_main + comfy_logs_user_dir
-print(log_files)
+    log_files = comfyui_logs_main + comfy_logs_user_dir
+    print(log_files)
 
-log_files.sort(key=os.path.getmtime, reverse=True)
-comfyui_file_path = comfyui_file_path = log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
+    log_files.sort(key=os.path.getmtime, reverse=True)
+    return log_files[0] if log_files else os.path.join(two_dirs_up, 'comfyui.log')
         
 @PromptServer.instance.routes.get("/flowscale/log/download")
 async def download_logs(request):
-    if not comfyui_file_path or not os.path.exists(comfyui_file_path):
+    comfyui_file_path = get_most_recent_log_file()
+    if not os.path.exists(comfyui_file_path):
         return web.json_response({
             "error": "Log file does not exist."
         }, status=404, content_type='application/json')
@@ -42,7 +44,8 @@ async def download_logs(request):
 
 @PromptServer.instance.routes.get("/flowscale/log/stream")
 async def stream_logs(request):
-    if not comfyui_file_path or not os.path.exists(comfyui_file_path):
+    comfyui_file_path = get_most_recent_log_file()
+    if not os.path.exists(comfyui_file_path):
         return web.json_response({
             "error": "Log file does not exist."
         }, status=404, content_type='application/json')
