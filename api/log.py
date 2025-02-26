@@ -108,7 +108,7 @@ async def stream_logs(request):
         except asyncio.TimeoutError:
             logger.error("[ERROR] Stream connection timed out")
 
-    await send_logs()
+    await send_logs(comfyui_file_path, response)
     return response
 
 async def read_last_n_lines(file_path, n):
