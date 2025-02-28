@@ -9,6 +9,7 @@ import time
 import re
 import aiofiles
 import boto3
+import shutil
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ async def fetch_path_contents(request):
     sanitized_directory_name = os.path.normpath(directory_name).lstrip(os.sep).rstrip(os.sep)
     
     directory_path = os.path.abspath(os.path.join(base_directory, sanitized_directory_name))
-            
+
     if not directory_path.startswith(base_directory):
         return web.json_response({
             "error": "Invalid directory path."
@@ -363,6 +364,79 @@ async def purge_directory(request):
         return web.json_response({
             "error": f"Error purging directory: {str(e)}"
         }, status=500)
+
+@PromptServer.instance.routes.delete("/flowscale/io/delete_directory")
+async def delete_directory(request):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    
+    directory_path = request.query.get('path')
+    if not directory_path:
+        return web.json_response({
+            "error": "path query parameter is required."
+        }, status=400, headers=headers)
+    
+    # Sanitize path input
+    if directory_path.startswith("./") or directory_path.startswith("../"):
+        directory_path = directory_path.lstrip("./").lstrip("../")
+    if directory_path.startswith("/") or directory_path.startswith("\\"):
+        directory_path = directory_path.lstrip("/").lstrip("\\")
+    
+    base_directory = os.getcwd()
+    custom_nodes_dir = os.path.join(base_directory, "custom_nodes")
+    
+    # Ensure path is within custom_nodes directory
+    sanitized_path = os.path.normpath(os.path.join(custom_nodes_dir, directory_path))
+    
+    if not sanitized_path.startswith(custom_nodes_dir):
+        return web.json_response({
+            "error": "Invalid directory path. Path must be within custom_nodes directory."
+        }, status=400, headers=headers)
+    
+    # Prevent deletion of the custom_nodes directory itself
+    if sanitized_path == custom_nodes_dir:
+        return web.json_response({
+            "error": "Cannot delete the custom_nodes directory itself."
+        }, status=400, headers=headers)
+    
+    # Check if directory exists
+    if not os.path.exists(sanitized_path) or not os.path.isdir(sanitized_path):
+        return web.json_response({
+            "error": "Directory does not exist."
+        }, status=404, headers=headers)
+    
+    try:
+        # Delete the directory and all contents
+        shutil.rmtree(sanitized_path)
+        logger.info(f"Directory deleted: {sanitized_path}")
+        
+        # Call reboot endpoint after successful deletion
+        import httpx
+        import asyncio
+        
+        async def call_reboot():
+            try:
+                async with httpx.AsyncClient() as client:
+                    reboot_url = f"http://localhost:{PromptServer.instance.port}/manager/reboot"
+                    response = await client.post(reboot_url)
+                    logger.info(f"Reboot API response: {response.status_code}")
+            except Exception as e:
+                logger.error(f"Error calling reboot API: {e}")
+        
+        # Schedule the reboot call but don't wait for it
+        asyncio.create_task(call_reboot())
+        
+        return web.json_response({
+            "message": f"Directory {directory_path} deleted successfully. Server will reboot."
+        }, headers=headers)
+    except Exception as e:
+        logger.error(f"Error deleting directory: {e}")
+        return web.json_response({
+            "error": f"Error deleting directory: {str(e)}"
+        }, status=500, headers=headers)
 
 def is_file_ready(file_path, max_delay=15):
     check_interval = 5
