@@ -414,19 +414,19 @@ async def delete_directory(request):
         logger.info(f"Directory deleted: {sanitized_path}")
         
         # Call reboot endpoint after successful deletion
-        import httpx
-        import asyncio
+        # import httpx
+        # import asyncio
         
-        async def call_reboot():
-            try:
-                async with httpx.AsyncClient() as client:
-                    reboot_url = f"http://localhost:{PromptServer.instance.port}/manager/reboot"
-                    response = await client.get(reboot_url)
-                    logger.info(f"Reboot API response: {response.status_code}")
-            except Exception as e:
-                logger.error(f"Error calling reboot API: {e}")
+        # async def call_reboot():
+        #     try:
+        #         async with httpx.AsyncClient() as client:
+        #             reboot_url = f"http://localhost:{PromptServer.instance.port}/manager/reboot"
+        #             response = await client.get(reboot_url)
+        #             logger.info(f"Reboot API response: {response.status_code}")
+        #     except Exception as e:
+        #         logger.error(f"Error calling reboot API: {e}")
         
-        asyncio.create_task(call_reboot())
+        # asyncio.create_task(call_reboot())
         
         return web.json_response({
             "message": f"Directory {directory_path} deleted successfully. Server will reboot."
