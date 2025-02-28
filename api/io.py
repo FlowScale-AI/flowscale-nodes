@@ -421,12 +421,11 @@ async def delete_directory(request):
             try:
                 async with httpx.AsyncClient() as client:
                     reboot_url = f"http://localhost:{PromptServer.instance.port}/manager/reboot"
-                    response = await client.post(reboot_url)
+                    response = await client.get(reboot_url)
                     logger.info(f"Reboot API response: {response.status_code}")
             except Exception as e:
                 logger.error(f"Error calling reboot API: {e}")
         
-        # Schedule the reboot call but don't wait for it
         asyncio.create_task(call_reboot())
         
         return web.json_response({
