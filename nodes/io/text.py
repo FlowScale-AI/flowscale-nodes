@@ -35,6 +35,7 @@ class FSSaveText:
 
     CATEGORY = "text"
     OUTPUT_NODE = True
+    RETURN_TYPES = ()
 
     def save_text(self, text, filename_prefix="Flowscale"):
         import os
