@@ -8,10 +8,11 @@ from .api.custom_node import *
 from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3, UploadImageToS3, UploadMediaToS3FromLink, UploadTextToS3
 from .nodes.model_utils import LoadModelFromCivitAI
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
-from .nodes.io.text import FSLoadText, FSSaveText, ShowText
+from .nodes.io.text import FSLoadText, FSSaveText
 from .nodes.io.image import FSLoadImage, FSSaveImage
 from .nodes.io.video import FSLoadVideo, FSSaveVideo
 from .utilitynodes.webhook import WebhookSender
+from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
 from .utilitynodes.json_extractor import ExtractPropertyNode
 
@@ -37,7 +38,7 @@ NODE_CLASS_MAPPINGS = {
   "FSSaveImage": FSSaveImage,
   "FSLoadVideo": FSLoadVideo,
   "FSSaveVideo": FSSaveVideo,
-  "ShowText": ShowText,
+  "GithubReadmeExtractor": GitHubReadmeExtractor,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -60,5 +61,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   "FSSaveImage": "[FS] Save Image",
   "FSLoadVideo": "[FS] Load Video",
   "FSSaveVideo": "[FS] Save Video",
-  "ShowText": "[FS] Show Text",
+  "GithubReadmeExtractor": "[FS] Extract GitHub Readme",
 }
+  
