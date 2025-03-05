@@ -8,3 +8,4 @@ botocore
 pillow
 numpy
 PyPDF2
+opencv-python
