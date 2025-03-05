@@ -25,7 +25,7 @@ class FSLoadVideo:
 
     FUNCTION = "load_video"
 
-    CATEGORY = "video"
+    CATEGORY = "IO"
 
     def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0):
         try:
@@ -143,7 +143,7 @@ class FSSaveVideo:
     
     FUNCTION = "save_video"
     
-    CATEGORY = "video"
+    CATEGORY = "IO"
     OUTPUT_NODE = True
     
     def save_video(self, images, filename, fps=24.0, format="mp4", quality=95, audio_path=""):
