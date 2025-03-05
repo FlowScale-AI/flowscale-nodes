@@ -47,18 +47,11 @@ class FSSaveText:
         os.makedirs(output_dir, exist_ok=True)
         filepath = os.path.join(output_dir, filename)
 
-        # Write the text to the file (append or overwrite)
-        mode = "w"
-        with open(filepath, mode, encoding="utf-8") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(text)
             
-        # If append mode, read the entire file content for the preview
-        with open(filepath, 'r', encoding="utf-8") as f:
-            full_text = f.read()
-            text_to_display = full_text
-            
-        print(f"Preview: {text_to_display}")
+        print(f"Preview: {text}")
         
         # Return both the UI element and the filepath
-        return {"ui": {"text": text_to_display}}
+        return {"ui": {"text": text}}
 
