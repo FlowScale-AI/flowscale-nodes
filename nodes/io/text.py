@@ -17,7 +17,7 @@ class FSLoadText:
 
     CATEGORY = "text"
 
-    def run(self, input_id, default_value=None, display_name=None, description=None):
+    def run(self, default_value=None):
         return [default_value]
 
 
