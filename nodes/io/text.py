@@ -36,6 +36,7 @@ class FSSaveText:
     CATEGORY = "text"
     OUTPUT_NODE = True
     RETURN_TYPES = ()
+    OUTPUT_IS_LIST = (True,)
 
     def save_text(self, text, filename_prefix="Flowscale"):
         import os
@@ -52,6 +53,5 @@ class FSSaveText:
             
         print(f"Preview: {text}")
         
-        # Return both the UI element and the filepath
         return {"ui": {"text": text}}
 
