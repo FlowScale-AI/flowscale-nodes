@@ -1,4 +1,6 @@
 import os
+import random
+import string
 import numpy as np
 import cv2
 import folder_paths
@@ -280,7 +282,6 @@ class FSLoadVideo:
             error_img[..., 1:] = 0  # Set green and blue channels to 0 (making it red)
             return (error_img, 0, 64, 64)
 
-# Update the FSLoadVideoPath class to better support URLs directly
 class FSLoadVideoPath:
     @classmethod
     def INPUT_TYPES(s):
@@ -338,7 +339,7 @@ class FSSaveVideo:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "filename": ("STRING", {"default": "output_video"}),
+                "filename_prefix": ("STRING", {"default": "FlowScale_"}),
                 "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.1}),
             },
             "optional": {
@@ -356,15 +357,16 @@ class FSSaveVideo:
     CATEGORY = "IO"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename, fps=24.0, format="mp4", quality=95, audio_path="", use_ffmpeg=True):
+    def save_video(self, images, filename_prefix="FlowScale_", fps=24.0, format="mp4", quality=95, audio_path="", use_ffmpeg=True):
         output_dir = folder_paths.get_output_directory()
         
+        random_segment = ''.join(random.choices(string.digits, k=6))
+
         # Ensure filename has extension
         if not re.search(r'\.\w+$', filename):
-            filename = f"{filename}.{format}"
+            filename = f"{filename_prefix}_{random_segment}.{format}"
         elif not filename.endswith(f".{format}"):
-            # Replace extension if it doesn't match selected format
-            filename = re.sub(r'\.\w+$', f".{format}", filename)
+            filename = re.sub(r'\.\w+$', f"_{random_segment}.{format}", filename)
             
         output_path = os.path.join(output_dir, filename)
         
