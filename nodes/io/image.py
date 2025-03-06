@@ -1,4 +1,6 @@
 import os
+import random
+import string
 import numpy as np
 from PIL import Image
 import folder_paths
@@ -82,7 +84,7 @@ class FSSaveImage:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "filename": ("STRING", {"default": "output"}),
+                "filename_prefix": ("STRING", {"default": "Flowscale_"}),
                 "format": (["png", "jpg", "jpeg", "webp"], {"default": "png"})
             },
             "optional": {
@@ -99,9 +101,8 @@ class FSSaveImage:
     CATEGORY = "IO"
     OUTPUT_NODE = True
     
-    def save_image(self, images, filename, format="png", quality=95, lossless=False):
+    def save_image(self, images, filename_prefix, format="png", quality=95, lossless=False):
         output_dir = folder_paths.get_output_directory()
-        filename_prefix = filename
         
         # Create directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
@@ -119,12 +120,9 @@ class FSSaveImage:
             if format == "jpg":
                 file_extension = "jpeg"
                 
-            # Add index to filename if we're saving multiple images
-            if images.shape[0] > 1:
-                save_filename = f"{filename_prefix}_{i:05d}.{file_extension}"
-            else:
-                save_filename = f"{filename_prefix}.{file_extension}"
-                
+            random_segment = ''.join(random.choices(string.digits, k=6))
+            save_filename = f"{filename_prefix}_{random_segment}.{file_extension}"
+            
             # Full save path
             save_path = os.path.join(output_dir, save_filename)
             

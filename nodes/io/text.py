@@ -1,3 +1,6 @@
+import random
+import string
+
 class FSLoadText:
     @classmethod
     def INPUT_TYPES(s):
@@ -27,7 +30,7 @@ class FSSaveText:
         return {
             "required": {
                 "text": ("STRING", {"forceInput": True}),
-                "filename_prefix": ("STRING", {"default": "Flowscale"}),
+                "filename_prefix": ("STRING", {"default": "FlowScale_"}),
             },
         }
 
@@ -39,11 +42,11 @@ class FSSaveText:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
-    def save_text(self, text, filename_prefix="Flowscale"):
+    def save_text(self, text, filename_prefix="FlowScale_"):
         import os
 
-        filename_prefix = filename_prefix or "Flowscale"
-        filename = f"{filename_prefix}.txt"
+        random_segment = ''.join(random.choices(string.digits, k=6))
+        filename = f"{filename_prefix}_{random_segment}.txt"
 
         output_dir = os.path.join(os.getcwd(), "output")
         os.makedirs(output_dir, exist_ok=True)
