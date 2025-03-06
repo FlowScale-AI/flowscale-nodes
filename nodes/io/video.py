@@ -361,12 +361,7 @@ class FSSaveVideo:
         output_dir = folder_paths.get_output_directory()
         
         random_segment = ''.join(random.choices(string.digits, k=6))
-
-        # Ensure filename has extension
-        if not re.search(r'\.\w+$', filename):
-            filename = f"{filename_prefix}_{random_segment}.{format}"
-        elif not filename.endswith(f".{format}"):
-            filename = re.sub(r'\.\w+$', f"_{random_segment}.{format}", filename)
+        filename = f"{filename_prefix}_{random_segment}.{format}"        
             
         output_path = os.path.join(output_dir, filename)
         
