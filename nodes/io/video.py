@@ -9,6 +9,7 @@ import requests
 from io import BytesIO
 import psutil
 import time
+import gc
 
 class FSLoadVideo:
     @classmethod
@@ -23,11 +24,12 @@ class FSLoadVideo:
                 "video": (sorted(files), {"video_upload": True}),
                 "video_url": ("STRING", {"default": ""}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "max_frames": ("INT", {"default": 64, "min": 1, "max": 1000, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "resize_to_width": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 8}),
+                "resize_to_width": ("INT", {"default": 512, "min": 0, "max": 4096, "step": 8}),
                 "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
-                "batch_size": ("INT", {"default": 16, "min": 1, "max": 64, "step": 1}),
+                "batch_size": ("INT", {"default": 4, "min": 1, "max": 16, "step": 1}),
+                "auto_resize_high_res": ("BOOLEAN", {"default": True}),
             }
         }
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
@@ -35,8 +37,8 @@ class FSLoadVideo:
     FUNCTION = "load_video"
     CATEGORY = "IO"
     
-    def load_video(self, video="", video_url="", start_frame=0, frame_count=0, skip_frames=0, 
-                   resize_to_width=0, resize_to_height=0, batch_size=16):
+    def load_video(self, video="", video_url="", start_frame=0, max_frames=64, skip_frames=0, 
+                   resize_to_width=512, resize_to_height=0, batch_size=4, auto_resize_high_res=True):
         try:
             temp_file = None
             
@@ -110,10 +112,27 @@ class FSLoadVideo:
             print(f"Video loaded: {path}")
             print(f"Total frames: {total_frames}, FPS: {fps}, Resolution: {width}x{height}")
             
-            # Calculate resized dimensions if requested
+            # Calculate resized dimensions
             should_resize = False
             target_width, target_height = width, height
             
+            # Auto-resize high-resolution videos if option is enabled
+            if auto_resize_high_res and (width > 1280 or height > 720):
+                # Only auto-resize if user hasn't set specific dimensions
+                if resize_to_width == 0 and resize_to_height == 0:
+                    # Calculate aspect ratio and resize to fit within HD bounds
+                    aspect_ratio = width / height
+                    if width > height:
+                        target_width = min(width, 1280)
+                        target_height = int(target_width / aspect_ratio)
+                    else:
+                        target_height = min(height, 720)
+                        target_width = int(target_height * aspect_ratio)
+                    
+                    should_resize = True
+                    print(f"Auto-resizing high-resolution video to {target_width}x{target_height}")
+            
+            # If user specified dimensions, use those instead
             if resize_to_width > 0 and resize_to_height > 0:
                 target_width, target_height = resize_to_width, resize_to_height
                 should_resize = True
@@ -129,27 +148,33 @@ class FSLoadVideo:
             if should_resize:
                 print(f"Resizing video from {width}x{height} to {target_width}x{target_height}")
                 
-            # Validate frame parameters
+            # Adjust start frame
             start_frame = max(0, min(start_frame, total_frames - 1))
-            
-            # If frame_count is 0 or exceeds available frames, use all remaining frames
-            if frame_count <= 0 or (start_frame + frame_count) > total_frames:
-                frame_count = total_frames - start_frame
-                
-            # Calculate number of frames to load with skip
-            step = skip_frames + 1  # +1 because we want to include the current frame
-            adjusted_frame_count = min((frame_count + step - 1) // step, total_frames - start_frame)
             
             # Calculate memory requirements for a single frame
             bytes_per_frame = target_width * target_height * 3 * 4  # width * height * channels * sizeof(float32)
             
-            # Calculate available memory with safety margin (leave 20% free)
-            available_memory = int(psutil.virtual_memory().available * 0.8)
+            # Calculate available memory with safety margin (leave 40% free for processing)
+            available_memory = int(psutil.virtual_memory().available * 0.6)
+            
+            # Calculate maximum number of frames that can fit in memory
+            memory_limited_frames = max(1, available_memory // bytes_per_frame)
+            
+            # Adjust frame count based on memory limits and user settings
+            if max_frames <= 0 or max_frames > memory_limited_frames:
+                frame_count = memory_limited_frames
+                print(f"Memory limit: Can safely load {memory_limited_frames} frames at {target_width}x{target_height}")
+            else:
+                frame_count = max_frames
+            
+            # Calculate number of frames to load with skip
+            step = skip_frames + 1  # +1 because we want to include the current frame
+            adjusted_frame_count = min((frame_count + step - 1) // step, total_frames - start_frame)
             
             # Determine batch size based on available memory
-            max_batch_size = max(1, min(batch_size, available_memory // bytes_per_frame))
+            max_batch_size = max(1, min(batch_size, memory_limited_frames // 4))  # 1/4 of what would fit in memory
             if max_batch_size < batch_size:
-                print(f"Warning: Reduced batch size from {batch_size} to {max_batch_size} due to memory constraints")
+                print(f"Reducing batch size from {batch_size} to {max_batch_size} due to memory constraints")
                 batch_size = max_batch_size
             
             # Process frames in batches
@@ -181,7 +206,7 @@ class FSLoadVideo:
                     # Resize if needed
                     if should_resize:
                         frame_rgb = cv2.resize(frame_rgb, (target_width, target_height), 
-                                              interpolation=cv2.INTER_LANCZOS4)
+                                              interpolation=cv2.INTER_AREA)  # Better for downsampling
                     
                     # Normalize to [0,1] range for ComfyUI
                     frame_norm = frame_rgb.astype(np.float32) / 255.0
@@ -202,10 +227,8 @@ class FSLoadVideo:
                     
                     # Free memory explicitly
                     batch_frames = None
-                    batch_stack = None
                     
                     # Force garbage collection
-                    import gc
                     gc.collect()
                     
                     print(f"Loaded {loaded_count}/{adjusted_frame_count} frames")
@@ -223,16 +246,30 @@ class FSLoadVideo:
                 raise ValueError("No frames were loaded from the video")
             
             # Combine all batches
-            frame_batch = np.concatenate(all_frames, axis=0)
-            
-            print(f"Successfully loaded {frame_batch.shape[0]} frames with shape {frame_batch.shape[1:]}")
-            
-            return (frame_batch, frame_batch.shape[0], target_width, target_height)
+            try:
+                frame_batch = np.concatenate(all_frames, axis=0)
+                
+                # Free memory of individual batches
+                all_frames = None
+                gc.collect()
+                
+                print(f"Successfully loaded {frame_batch.shape[0]} frames with shape {frame_batch.shape[1:]}")
+                
+                return (frame_batch, frame_batch.shape[0], target_width, target_height)
+            except Exception as e:
+                print(f"Error concatenating frames: {e}. Returning the first batch.")
+                # Return just the first batch if concatenation fails
+                if all_frames:
+                    return (all_frames[0], all_frames[0].shape[0], target_width, target_height)
+                raise
             
         except Exception as e:
             # Clean up temporary file if an error occurred
             if temp_file and os.path.exists(temp_file.name):
-                os.unlink(temp_file.name)
+                try:
+                    os.unlink(temp_file.name)
+                except:
+                    pass
                 
             print(f"Error loading video: {e}")
             # Return a small red placeholder image on error 
@@ -250,19 +287,20 @@ class FSLoadVideoPath:
             },
             "optional": {
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "max_frames": ("INT", {"default": 64, "min": 1, "max": 1000, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "resize_to_width": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 8}),
+                "resize_to_width": ("INT", {"default": 512, "min": 0, "max": 4096, "step": 8}),
                 "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
-                "batch_size": ("INT", {"default": 16, "min": 1, "max": 64, "step": 1}),
+                "batch_size": ("INT", {"default": 4, "min": 1, "max": 16, "step": 1}),
+                "auto_resize_high_res": ("BOOLEAN", {"default": True}),
             }
         }
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
     RETURN_NAMES = ("frames", "frame_count", "width", "height")
     FUNCTION = "load_video"
     CATEGORY = "IO"
-    def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0, 
-                   resize_to_width=0, resize_to_height=0, batch_size=16):
+    def load_video(self, video_path, start_frame=0, max_frames=64, skip_frames=0, 
+                   resize_to_width=512, resize_to_height=0, batch_size=4, auto_resize_high_res=True):
         # Check if the path is a URL
         if video_path.startswith(('http://', 'https://')):
             # Create FSLoadVideo instance and call with URL
@@ -270,11 +308,12 @@ class FSLoadVideoPath:
             return loader.load_video(
                 video_url=video_path,
                 start_frame=start_frame,
-                frame_count=frame_count,
+                max_frames=max_frames,
                 skip_frames=skip_frames,
                 resize_to_width=resize_to_width,
                 resize_to_height=resize_to_height,
-                batch_size=batch_size
+                batch_size=batch_size,
+                auto_resize_high_res=auto_resize_high_res
             )
         else:
             # Otherwise treat as a local path
@@ -282,11 +321,12 @@ class FSLoadVideoPath:
             return loader.load_video(
                 video=video_path,
                 start_frame=start_frame,
-                frame_count=frame_count, 
+                max_frames=max_frames, 
                 skip_frames=skip_frames,
                 resize_to_width=resize_to_width,
                 resize_to_height=resize_to_height,
-                batch_size=batch_size
+                batch_size=batch_size,
+                auto_resize_high_res=auto_resize_high_res
             )
 
 class FSSaveVideo:
