@@ -26,7 +26,8 @@ async def install_node(request):
         repo_url = body.get("repo_url")
         repo_branch = body.get("branch", "main")
         commit_sha = body.get("sha")  # Optional SHA for specific commit checkout
-
+        pip_packages = body.get("pip_packages", [])
+        apt_packages = body.get("apt_packages", [])
 
         if not repo_url:
             return web.json_response({"error": "Repository URL is required"}, status=400)
@@ -44,6 +45,28 @@ async def install_node(request):
             logger.info(f"Checking out to commit {commit_sha}...")
             repo.git.checkout(commit_sha)
             logger.info(f"Successfully checked out to commit {commit_sha}")
+        
+        # Install APT packages if provided
+        if apt_packages and len(apt_packages) > 0:
+            logger.info(f"Installing APT packages: {', '.join(apt_packages)}")
+            try:
+                apt_command = ["apt-get", "install", "-y"] + apt_packages
+                subprocess.check_call(["sudo"] + apt_command)
+                logger.info("APT packages installed successfully")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to install APT packages: {e}")
+                return web.json_response({"error": "Failed to install APT packages", "details": str(e)}, status=500)
+        
+        # Install pip packages if provided
+        if pip_packages and len(pip_packages) > 0:
+            logger.info(f"Installing pip packages: {', '.join(pip_packages)}")
+            try:
+                pip_command = [os.sys.executable, "-m", "pip", "install"] + pip_packages
+                subprocess.check_call(pip_command)
+                logger.info("pip packages installed successfully")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to install pip packages: {e}")
+                return web.json_response({"error": "Failed to install pip packages", "details": str(e)}, status=500)
 
         requirements_file = os.path.join(repo_path, "requirements.txt")
         if os.path.exists(requirements_file):
@@ -54,7 +77,6 @@ async def install_node(request):
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install dependencies: {e}")
                 return web.json_response({"error": "Failed to install dependencies", "details": str(e)}, status=500)
-
 
         logger.info(f"Successfully cloned {repo_url} into {repo_path}")
         return web.json_response({"message": "Repository installed successfully", "path": repo_path, "commit": commit_sha or repo.head.commit.hexsha}, status=200)
