@@ -8,6 +8,7 @@ import re
 import requests
 from io import BytesIO
 import psutil
+import time
 
 class FSLoadVideo:
     @classmethod
@@ -24,9 +25,9 @@ class FSLoadVideo:
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "max_memory_percentage": ("INT", {"default": 80, "min": 10, "max": 95, "step": 1}),
                 "resize_to_width": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 8}),
                 "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
+                "batch_size": ("INT", {"default": 16, "min": 1, "max": 64, "step": 1}),
             }
         }
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
@@ -35,7 +36,7 @@ class FSLoadVideo:
     CATEGORY = "IO"
     
     def load_video(self, video="", video_url="", start_frame=0, frame_count=0, skip_frames=0, 
-                  max_memory_percentage=80, resize_to_width=0, resize_to_height=0):
+                   resize_to_width=0, resize_to_height=0, batch_size=16):
         try:
             temp_file = None
             
@@ -134,60 +135,82 @@ class FSLoadVideo:
             # If frame_count is 0 or exceeds available frames, use all remaining frames
             if frame_count <= 0 or (start_frame + frame_count) > total_frames:
                 frame_count = total_frames - start_frame
-            
-            # Calculate memory requirements and adjust frame_count if necessary
-            # Each frame requires width * height * 3 (RGB) * 4 (float32) bytes
-            bytes_per_frame = target_width * target_height * 3 * 4
-            
-            # Get available system memory
-            available_memory = psutil.virtual_memory().available
-            safe_memory = int(available_memory * max_memory_percentage / 100)
-            
-            # Calculate how many frames can be safely loaded
-            safe_frame_count = safe_memory // bytes_per_frame
-            
-            if safe_frame_count < frame_count:
-                orig_frame_count = frame_count
-                frame_count = safe_frame_count
-                print(f"Warning: Reducing frame count from {orig_frame_count} to {frame_count} due to memory constraints")
                 
             # Calculate number of frames to load with skip
             step = skip_frames + 1  # +1 because we want to include the current frame
-            adjusted_frame_count = (frame_count + step - 1) // step
+            adjusted_frame_count = min((frame_count + step - 1) // step, total_frames - start_frame)
             
-            # Seek to start frame
-            cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+            # Calculate memory requirements for a single frame
+            bytes_per_frame = target_width * target_height * 3 * 4  # width * height * channels * sizeof(float32)
             
-            # Load the frames
-            frames = []
+            # Calculate available memory with safety margin (leave 20% free)
+            available_memory = int(psutil.virtual_memory().available * 0.8)
+            
+            # Determine batch size based on available memory
+            max_batch_size = max(1, min(batch_size, available_memory // bytes_per_frame))
+            if max_batch_size < batch_size:
+                print(f"Warning: Reduced batch size from {batch_size} to {max_batch_size} due to memory constraints")
+                batch_size = max_batch_size
+            
+            # Process frames in batches
+            all_frames = []
             current_frame = start_frame
             loaded_count = 0
             
-            while loaded_count < adjusted_frame_count and current_frame < total_frames:
-                ret, frame = cap.read()
-                if not ret:
-                    break
+            print(f"Processing {adjusted_frame_count} frames in batches of {batch_size}")
+            
+            while loaded_count < adjusted_frame_count:
+                # Calculate batch end
+                batch_end = min(loaded_count + batch_size, adjusted_frame_count)
+                batch_size_current = batch_end - loaded_count
+                
+                # Load batch
+                batch_frames = []
+                
+                # Seek to correct position
+                cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+                
+                for i in range(batch_size_current):
+                    ret, frame = cap.read()
+                    if not ret:
+                        break
+                        
+                    # Convert from BGR to RGB
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     
-                # Convert from BGR to RGB
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    # Resize if needed
+                    if should_resize:
+                        frame_rgb = cv2.resize(frame_rgb, (target_width, target_height), 
+                                              interpolation=cv2.INTER_LANCZOS4)
+                    
+                    # Normalize to [0,1] range for ComfyUI
+                    frame_norm = frame_rgb.astype(np.float32) / 255.0
+                    
+                    batch_frames.append(frame_norm)
+                    loaded_count += 1
+                    
+                    # Skip frames if needed
+                    if skip_frames > 0:
+                        current_frame += skip_frames + 1
+                    else:
+                        current_frame += 1
                 
-                # Resize if needed
-                if should_resize:
-                    frame_rgb = cv2.resize(frame_rgb, (target_width, target_height), 
-                                          interpolation=cv2.INTER_LANCZOS4)
-                
-                # Normalize to [0,1] range for ComfyUI
-                frame_norm = frame_rgb.astype(np.float32) / 255.0
-                
-                frames.append(frame_norm)
-                loaded_count += 1
-                
-                # Skip frames if needed
-                if skip_frames > 0:
-                    current_frame += skip_frames
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
-                
-                current_frame += 1
+                if batch_frames:
+                    # Stack batch frames
+                    batch_stack = np.stack(batch_frames)
+                    all_frames.append(batch_stack)
+                    
+                    # Free memory explicitly
+                    batch_frames = None
+                    batch_stack = None
+                    
+                    # Force garbage collection
+                    import gc
+                    gc.collect()
+                    
+                    print(f"Loaded {loaded_count}/{adjusted_frame_count} frames")
+                else:
+                    break
             
             # Release the video object
             cap.release()
@@ -196,13 +219,15 @@ class FSLoadVideo:
             if temp_file and os.path.exists(temp_file.name):
                 os.unlink(temp_file.name)
                 
-            if not frames:
+            if not all_frames:
                 raise ValueError("No frames were loaded from the video")
             
-            # Stack frames into a batch
-            frame_batch = np.stack(frames)
+            # Combine all batches
+            frame_batch = np.concatenate(all_frames, axis=0)
             
-            return (frame_batch, loaded_count, target_width, target_height)
+            print(f"Successfully loaded {frame_batch.shape[0]} frames with shape {frame_batch.shape[1:]}")
+            
+            return (frame_batch, frame_batch.shape[0], target_width, target_height)
             
         except Exception as e:
             # Clean up temporary file if an error occurred
@@ -227,9 +252,9 @@ class FSLoadVideoPath:
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "max_memory_percentage": ("INT", {"default": 80, "min": 10, "max": 95, "step": 1}),
                 "resize_to_width": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 8}),
                 "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
+                "batch_size": ("INT", {"default": 16, "min": 1, "max": 64, "step": 1}),
             }
         }
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
@@ -237,7 +262,7 @@ class FSLoadVideoPath:
     FUNCTION = "load_video"
     CATEGORY = "IO"
     def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0, 
-                  max_memory_percentage=80, resize_to_width=0, resize_to_height=0):
+                   resize_to_width=0, resize_to_height=0, batch_size=16):
         # Check if the path is a URL
         if video_path.startswith(('http://', 'https://')):
             # Create FSLoadVideo instance and call with URL
@@ -247,9 +272,9 @@ class FSLoadVideoPath:
                 start_frame=start_frame,
                 frame_count=frame_count,
                 skip_frames=skip_frames,
-                max_memory_percentage=max_memory_percentage,
                 resize_to_width=resize_to_width,
-                resize_to_height=resize_to_height
+                resize_to_height=resize_to_height,
+                batch_size=batch_size
             )
         else:
             # Otherwise treat as a local path
@@ -259,9 +284,9 @@ class FSLoadVideoPath:
                 start_frame=start_frame,
                 frame_count=frame_count, 
                 skip_frames=skip_frames,
-                max_memory_percentage=max_memory_percentage,
                 resize_to_width=resize_to_width,
-                resize_to_height=resize_to_height
+                resize_to_height=resize_to_height,
+                batch_size=batch_size
             )
 
 class FSSaveVideo:
