@@ -2,13 +2,20 @@ import os
 import numpy as np
 from PIL import Image
 import folder_paths
+import requests
+from io import BytesIO
 
 class FSLoadImage:
     @classmethod
     def INPUT_TYPES(s):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
         return {
             "required": {
-                "image_path": ("STRING", {"default": ""}),
+                "image": (sorted(files), {"image_upload": True}),
+            },
+            "optional": {
+                "image_url": ("STRING", {"default": ""}),
             }
         }
 
@@ -19,25 +26,37 @@ class FSLoadImage:
 
     CATEGORY = "IO"
 
-    def load_image(self, image_path):
+    def load_image(self, image, image_url=""):
         try:
-            # If path is absolute, use it directly
-            if os.path.isabs(image_path):
-                path = image_path
+            # If image_url is provided, load from URL
+            if image_url:
+                try:
+                    response = requests.get(image_url)
+                    response.raise_for_status()
+                    img = Image.open(BytesIO(response.content))
+                    path = f"URL: {image_url}"
+                except Exception as e:
+                    print(f"Error loading image from URL: {e}")
+                    raise
             else:
-                # Otherwise, check in the input directory
-                input_dir = folder_paths.get_input_directory()
-                path = os.path.join(input_dir, image_path)
+                # If path is absolute, use it directly
+                if os.path.isabs(image):
+                    path = image
+                else:
+                    # Otherwise, check in the input directory
+                    input_dir = folder_paths.get_input_directory()
+                    path = os.path.join(input_dir, image)
+                    
+                    # If not found in input directory, try absolute from cwd
+                    if not os.path.exists(path):
+                        path = os.path.join(os.getcwd(), image)
                 
-                # If not found in input directory, try absolute from cwd
                 if not os.path.exists(path):
-                    path = os.path.join(os.getcwd(), image_path)
-            
-            if not os.path.exists(path):
-                raise FileNotFoundError(f"Image not found at path: {path}")
+                    raise FileNotFoundError(f"Image not found at path: {path}")
+                    
+                # Load the image with PIL
+                img = Image.open(path)
                 
-            # Load the image with PIL
-            img = Image.open(path)
             # Convert to RGB if needed
             if img.mode != "RGB":
                 img = img.convert("RGB")
