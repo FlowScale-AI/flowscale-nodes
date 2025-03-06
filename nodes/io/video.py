@@ -7,6 +7,7 @@ from PIL import Image
 import re
 import requests
 from io import BytesIO
+import psutil
 
 class FSLoadVideo:
     @classmethod
@@ -16,23 +17,31 @@ class FSLoadVideo:
                 any(f.lower().endswith(ext) for ext in ['.mp4', '.avi', '.mov', '.webm', '.mkv'])]
         
         return {
-            "required": {
-                "video": (sorted(files), {"video_upload": True}),
-            },
+            "required": {},
             "optional": {
+                "video": (sorted(files), {"video_upload": True}),
                 "video_url": ("STRING", {"default": ""}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "max_memory_percentage": ("INT", {"default": 80, "min": 10, "max": 95, "step": 1}),
+                "resize_to_width": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 8}),
+                "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
             }
         }
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
     RETURN_NAMES = ("frames", "frame_count", "width", "height")
     FUNCTION = "load_video"
     CATEGORY = "IO"
-    def load_video(self, video, video_url="", start_frame=0, frame_count=0, skip_frames=0):
+    
+    def load_video(self, video="", video_url="", start_frame=0, frame_count=0, skip_frames=0, 
+                  max_memory_percentage=80, resize_to_width=0, resize_to_height=0):
         try:
             temp_file = None
+            
+            # Check that at least one source is provided
+            if not video and not video_url:
+                raise ValueError("Either video or video_url must be provided")
             
             # If URL is provided, download the video to a temporary file
             if video_url:
@@ -100,12 +109,47 @@ class FSLoadVideo:
             print(f"Video loaded: {path}")
             print(f"Total frames: {total_frames}, FPS: {fps}, Resolution: {width}x{height}")
             
+            # Calculate resized dimensions if requested
+            should_resize = False
+            target_width, target_height = width, height
+            
+            if resize_to_width > 0 and resize_to_height > 0:
+                target_width, target_height = resize_to_width, resize_to_height
+                should_resize = True
+            elif resize_to_width > 0:
+                target_width = resize_to_width
+                target_height = int(height * (resize_to_width / width))
+                should_resize = True
+            elif resize_to_height > 0:
+                target_height = resize_to_height
+                target_width = int(width * (resize_to_height / height))
+                should_resize = True
+                
+            if should_resize:
+                print(f"Resizing video from {width}x{height} to {target_width}x{target_height}")
+                
             # Validate frame parameters
             start_frame = max(0, min(start_frame, total_frames - 1))
             
             # If frame_count is 0 or exceeds available frames, use all remaining frames
             if frame_count <= 0 or (start_frame + frame_count) > total_frames:
                 frame_count = total_frames - start_frame
+            
+            # Calculate memory requirements and adjust frame_count if necessary
+            # Each frame requires width * height * 3 (RGB) * 4 (float32) bytes
+            bytes_per_frame = target_width * target_height * 3 * 4
+            
+            # Get available system memory
+            available_memory = psutil.virtual_memory().available
+            safe_memory = int(available_memory * max_memory_percentage / 100)
+            
+            # Calculate how many frames can be safely loaded
+            safe_frame_count = safe_memory // bytes_per_frame
+            
+            if safe_frame_count < frame_count:
+                orig_frame_count = frame_count
+                frame_count = safe_frame_count
+                print(f"Warning: Reducing frame count from {orig_frame_count} to {frame_count} due to memory constraints")
                 
             # Calculate number of frames to load with skip
             step = skip_frames + 1  # +1 because we want to include the current frame
@@ -126,6 +170,11 @@ class FSLoadVideo:
                     
                 # Convert from BGR to RGB
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
+                # Resize if needed
+                if should_resize:
+                    frame_rgb = cv2.resize(frame_rgb, (target_width, target_height), 
+                                          interpolation=cv2.INTER_LANCZOS4)
                 
                 # Normalize to [0,1] range for ComfyUI
                 frame_norm = frame_rgb.astype(np.float32) / 255.0
@@ -153,7 +202,7 @@ class FSLoadVideo:
             # Stack frames into a batch
             frame_batch = np.stack(frames)
             
-            return (frame_batch, loaded_count, width, height)
+            return (frame_batch, loaded_count, target_width, target_height)
             
         except Exception as e:
             # Clean up temporary file if an error occurred
@@ -178,22 +227,42 @@ class FSLoadVideoPath:
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "max_memory_percentage": ("INT", {"default": 80, "min": 10, "max": 95, "step": 1}),
+                "resize_to_width": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 8}),
+                "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
             }
         }
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
     RETURN_NAMES = ("frames", "frame_count", "width", "height")
     FUNCTION = "load_video"
     CATEGORY = "IO"
-    def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0):
+    def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0, 
+                  max_memory_percentage=80, resize_to_width=0, resize_to_height=0):
         # Check if the path is a URL
         if video_path.startswith(('http://', 'https://')):
             # Create FSLoadVideo instance and call with URL
             loader = FSLoadVideo()
-            return loader.load_video("", video_path, start_frame, frame_count, skip_frames)
+            return loader.load_video(
+                video_url=video_path,
+                start_frame=start_frame,
+                frame_count=frame_count,
+                skip_frames=skip_frames,
+                max_memory_percentage=max_memory_percentage,
+                resize_to_width=resize_to_width,
+                resize_to_height=resize_to_height
+            )
         else:
             # Otherwise treat as a local path
             loader = FSLoadVideo()
-            return loader.load_video(video_path, "", start_frame, frame_count, skip_frames)
+            return loader.load_video(
+                video=video_path,
+                start_frame=start_frame,
+                frame_count=frame_count, 
+                skip_frames=skip_frames,
+                max_memory_percentage=max_memory_percentage,
+                resize_to_width=resize_to_width,
+                resize_to_height=resize_to_height
+            )
 
 class FSSaveVideo:
     @classmethod
