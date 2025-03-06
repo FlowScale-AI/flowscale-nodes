@@ -349,7 +349,7 @@ class UploadImageToS3:
     CATEGORY = "Utilities"
     OUTPUT_NODE = True
   
-    def upload_images_to_s3(self, images, filename_prefix="ComfyUI", user_id="flowscale_user", identifier="default"):
+    def upload_images_to_s3(self, images, filename_prefix="ComfyUI_", user_id="flowscale_user", identifier="default"):
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(
             filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
         )
@@ -367,7 +367,7 @@ class UploadImageToS3:
 
             # Upload to S3
             rand_num = random.randint(1111, 9999)
-            s3_key = f"duke_media/{user_id}/{user_id}_{identifier}_image_{rand_num}.png"
+            s3_key = f"flowscale/{user_id}/{user_id}_{identifier}_image_{rand_num}.png"
             try:
                 self.s3_client.upload_file(
                     local_file_path, 
@@ -504,7 +504,7 @@ class UploadMediaToS3FromLink:
                 media_type = "video"
             else:
                 media_type = "image"
-            s3_key = f"duke_media/{user_id}/{user_id}_{identifier}_{media_type}_{rand_num}{extension}"
+            s3_key = f"flowscale/{user_id}/{user_id}_{identifier}_{media_type}_{rand_num}{extension}"
             try:
                 self.s3_client.upload_file(
                     local_file_path,
@@ -595,7 +595,7 @@ class UploadTextToS3:
     CATEGORY = "S3"
     OUTPUT_NODE = True
 
-    def upload_text_to_s3(self, text, filename_prefix="ComfyUI_Text", user_id="flowscale_user", identifier="default"):
+    def upload_text_to_s3(self, text, filename_prefix="ComfyUI_Text_", user_id="flowscale_user", identifier="default"):
         import tempfile
         import os
         from uuid import uuid4
@@ -626,7 +626,7 @@ class UploadTextToS3:
                 logger.info(f"Created temporary text file at {local_file_path}")
 
                 rand_num = random.randint(1111, 9999)
-                s3_key = f"duke_media/{user_id}/{user_id}_{identifier}_text_{rand_num}.txt"
+                s3_key = f"flowscale/{user_id}/{user_id}_{identifier}_text_{rand_num}.txt"
                 # Upload to S3
                 self.s3_client.upload_file(
                     local_file_path,
