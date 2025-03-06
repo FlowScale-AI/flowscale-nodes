@@ -5,46 +5,83 @@ import folder_paths
 import tempfile
 from PIL import Image
 import re
+import requests
+from io import BytesIO
 
 class FSLoadVideo:
     @classmethod
     def INPUT_TYPES(s):
+        input_dir = folder_paths.get_input_directory()
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f)) and 
+                any(f.lower().endswith(ext) for ext in ['.mp4', '.avi', '.mov', '.webm', '.mkv'])]
+        
         return {
             "required": {
-                "video_path": ("STRING", {"default": ""}),
+                "video": (sorted(files), {"video_upload": True}),
             },
             "optional": {
+                "video_url": ("STRING", {"default": ""}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
             }
         }
-
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
     RETURN_NAMES = ("frames", "frame_count", "width", "height")
-
     FUNCTION = "load_video"
-
     CATEGORY = "IO"
-
-    def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0):
+    def load_video(self, video, video_url="", start_frame=0, frame_count=0, skip_frames=0):
         try:
-            # If path is absolute, use it directly
-            if os.path.isabs(video_path):
-                path = video_path
-            else:
-                # Otherwise, check in the input directory
-                input_dir = folder_paths.get_input_directory()
-                path = os.path.join(input_dir, video_path)
-                
-                # If not found in input directory, try absolute from cwd
-                if not os.path.exists(path):
-                    path = os.path.join(os.getcwd(), video_path)
+            temp_file = None
+            
+            # If URL is provided, download the video to a temporary file
+            if video_url:
+                try:
+                    print(f"Downloading video from URL: {video_url}")
+                    response = requests.get(video_url, stream=True)
+                    response.raise_for_status()
                     
-                # If still not found, check output directory
-                if not os.path.exists(path):
-                    output_dir = folder_paths.get_output_directory()
-                    path = os.path.join(output_dir, video_path)
+                    # Create a temporary file with appropriate extension
+                    suffix = ".mp4"  # Default extension
+                    content_type = response.headers.get('Content-Type', '')
+                    if 'webm' in content_type:
+                        suffix = ".webm"
+                    elif 'quicktime' in content_type:
+                        suffix = ".mov"
+                    elif 'x-msvideo' in content_type:
+                        suffix = ".avi"
+                    
+                    temp_file = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+                    for chunk in response.iter_content(chunk_size=8192): 
+                        if chunk:
+                            temp_file.write(chunk)
+                    temp_file.flush()
+                    temp_file.close()
+                    
+                    path = temp_file.name
+                    print(f"Video downloaded to temporary file: {path}")
+                except Exception as e:
+                    if temp_file and os.path.exists(temp_file.name):
+                        os.unlink(temp_file.name)
+                    print(f"Error downloading video from URL: {e}")
+                    raise
+            else:
+                # If path is absolute, use it directly
+                if os.path.isabs(video):
+                    path = video
+                else:
+                    # Otherwise, check in the input directory
+                    input_dir = folder_paths.get_input_directory()
+                    path = os.path.join(input_dir, video)
+                    
+                    # If not found in input directory, try absolute from cwd
+                    if not os.path.exists(path):
+                        path = os.path.join(os.getcwd(), video)
+                        
+                    # If still not found, check output directory
+                    if not os.path.exists(path):
+                        output_dir = folder_paths.get_output_directory()
+                        path = os.path.join(output_dir, video)
             
             if not os.path.exists(path):
                 raise FileNotFoundError(f"Video not found at path: {path}")
@@ -106,6 +143,10 @@ class FSLoadVideo:
             # Release the video object
             cap.release()
             
+            # Clean up temporary file if we created one
+            if temp_file and os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
+                
             if not frames:
                 raise ValueError("No frames were loaded from the video")
             
@@ -115,12 +156,44 @@ class FSLoadVideo:
             return (frame_batch, loaded_count, width, height)
             
         except Exception as e:
+            # Clean up temporary file if an error occurred
+            if temp_file and os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
+                
             print(f"Error loading video: {e}")
             # Return a small red placeholder image on error 
             error_img = np.ones((1, 64, 64, 3), dtype=np.float32)
             error_img[..., 1:] = 0  # Set green and blue channels to 0 (making it red)
             return (error_img, 0, 64, 64)
 
+# Update the FSLoadVideoPath class to better support URLs directly
+class FSLoadVideoPath:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "video_path": ("STRING", {"default": ""}),
+            },
+            "optional": {
+                "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "frame_count": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
+            }
+        }
+    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
+    RETURN_NAMES = ("frames", "frame_count", "width", "height")
+    FUNCTION = "load_video"
+    CATEGORY = "IO"
+    def load_video(self, video_path, start_frame=0, frame_count=0, skip_frames=0):
+        # Check if the path is a URL
+        if video_path.startswith(('http://', 'https://')):
+            # Create FSLoadVideo instance and call with URL
+            loader = FSLoadVideo()
+            return loader.load_video("", video_path, start_frame, frame_count, skip_frames)
+        else:
+            # Otherwise treat as a local path
+            loader = FSLoadVideo()
+            return loader.load_video(video_path, "", start_frame, frame_count, skip_frames)
 
 class FSSaveVideo:
     @classmethod
