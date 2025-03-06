@@ -10,6 +10,9 @@ from io import BytesIO
 import psutil
 import time
 import gc
+import shutil
+import subprocess
+import shlex
 
 class FSLoadVideo:
     @classmethod
@@ -342,9 +345,9 @@ class FSSaveVideo:
                 "format": (["mp4", "avi", "mov", "webm"], {"default": "mp4"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "audio_path": ("STRING", {"default": ""}),
+                "use_ffmpeg": ("BOOLEAN", {"default": True}),
             }
         }
-
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("video_path",)
     
@@ -353,7 +356,7 @@ class FSSaveVideo:
     CATEGORY = "IO"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename, fps=24.0, format="mp4", quality=95, audio_path=""):
+    def save_video(self, images, filename, fps=24.0, format="mp4", quality=95, audio_path="", use_ffmpeg=True):
         output_dir = folder_paths.get_output_directory()
         
         # Ensure filename has extension
@@ -375,65 +378,96 @@ class FSSaveVideo:
             # Get dimensions
             frame_count, height, width, channels = uint8_frames.shape
             
-            # Choose codec based on format
-            if format == "mp4":
-                fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H.264 codec
-            elif format == "avi":
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            elif format == "mov":
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            elif format == "webm":
-                fourcc = cv2.VideoWriter_fourcc(*'VP90')
-            else:
-                fourcc = cv2.VideoWriter_fourcc(*'avc1')  # Default to H.264
-                
-            # Map quality (1-100) to bitrate
-            # Higher quality = higher bitrate
-            # Rough approximation: HD content at quality 95 ~= 8000 kbps
-            base_bitrate = 8000000  # 8 Mbps for quality 95
-            bitrate = int((quality / 95) * base_bitrate)
-                
-            # Create video writer
-            video_writer = cv2.VideoWriter(
-                output_path,
-                fourcc,
-                fps,
-                (width, height)
-            )
-            
-            # Set bitrate if possible (not all codecs support this)
-            try:
-                video_writer.set(cv2.VIDEOWRITER_PROP_QUALITY, quality)
-            except:
-                pass
-                
-            for frame in uint8_frames:
-                # Convert RGB to BGR for OpenCV
-                bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                video_writer.write(bgr_frame)
-                
-            video_writer.release()
-            
-            # Add audio if provided
-            if audio_path and os.path.exists(audio_path):
+            if use_ffmpeg and self._has_ffmpeg():
+                # Save frames to temporary directory
+                temp_dir = tempfile.mkdtemp()
                 try:
-                    import subprocess
-                    import shlex
+                    print(f"Saving {frame_count} frames to temporary directory...")
+                    for i, frame in enumerate(uint8_frames):
+                        # Save each frame as PNG
+                        frame_path = os.path.join(temp_dir, f"frame_{i:05d}.png")
+                        # Convert RGB to BGR for OpenCV
+                        bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                        cv2.imwrite(frame_path, bgr_frame)
                     
-                    # Create a temporary file for the output with audio
-                    with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as temp_file:
-                        temp_path = temp_file.name
-                        
-                    # Use ffmpeg to add audio
-                    cmd = f"ffmpeg -i {shlex.quote(output_path)} -i {shlex.quote(audio_path)} -c:v copy -c:a aac -shortest {shlex.quote(temp_path)}"
-                    subprocess.run(cmd, shell=True, check=True)
+                    # Use FFmpeg to encode video
+                    self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality, audio_path)
                     
-                    # Replace the original file with the one with audio
-                    os.replace(temp_path, output_path)
-                    print(f"Added audio from {audio_path} to video")
+                finally:
+                    # Clean up temporary directory
+                    shutil.rmtree(temp_dir)
+            else:
+                # Fall back to OpenCV for encoding
+                print("Using OpenCV for video encoding...")
+                
+                # Choose codec based on format
+                if format == "mp4":
+                    # Try multiple codecs in order of preference
+                    codecs = ['avc1', 'mp4v', 'divx', 'xvid']
+                    working_codec = None
                     
-                except Exception as e:
-                    print(f"Error adding audio to video: {e}")
+                    for codec in codecs:
+                        try:
+                            fourcc = cv2.VideoWriter_fourcc(*codec)
+                            test_path = os.path.join(output_dir, f"test_{codec}.{format}")
+                            test_writer = cv2.VideoWriter(test_path, fourcc, fps, (width, height))
+                            
+                            if test_writer.isOpened():
+                                test_writer.release()
+                                working_codec = codec
+                                os.remove(test_path)
+                                break
+                            else:
+                                test_writer.release()
+                                if os.path.exists(test_path):
+                                    os.remove(test_path)
+                                    
+                        except Exception as e:
+                            print(f"Codec {codec} failed: {str(e)}")
+                    
+                    if working_codec is None:
+                        # If no codec worked, try a very common codec
+                        working_codec = 'XVID'
+                        format = 'avi'  # Change format to match codec
+                        output_path = os.path.join(output_dir, f"{os.path.splitext(filename)[0]}.{format}")
+                    
+                    fourcc = cv2.VideoWriter_fourcc(*working_codec)
+                    print(f"Using codec: {working_codec}")
+                    
+                elif format == "avi":
+                    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                elif format == "mov":
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                elif format == "webm":
+                    fourcc = cv2.VideoWriter_fourcc(*'VP90')
+                else:
+                    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                    
+                # Create video writer
+                video_writer = cv2.VideoWriter(
+                    output_path,
+                    fourcc,
+                    fps,
+                    (width, height)
+                )
+                
+                if not video_writer.isOpened():
+                    raise ValueError("Could not open VideoWriter. Try using FFmpeg instead.")
+                
+                # Write frames
+                for frame in uint8_frames:
+                    # Convert RGB to BGR for OpenCV
+                    bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    video_writer.write(bgr_frame)
+                    
+                video_writer.release()
+                
+                # Add audio if provided
+                if audio_path and os.path.exists(audio_path):
+                    if self._has_ffmpeg():
+                        self._add_audio_with_ffmpeg(output_path, audio_path, format)
+                    else:
+                        print("FFmpeg not found, cannot add audio to video")
             
             print(f"Video saved to: {output_path}")
             return (output_path,)
@@ -441,3 +475,81 @@ class FSSaveVideo:
         except Exception as e:
             print(f"Error saving video: {e}")
             return ("",)
+    
+    def _has_ffmpeg(self):
+        try:
+            subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return True
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return False
+    
+    def _encode_with_ffmpeg(self, frame_dir, output_path, fps, format, quality, audio_path=None):
+        # Map quality (0-100) to CRF (0-51, lower is better)
+        # Quality 95 -> CRF 15, Quality 0 -> CRF 51
+        crf = max(0, min(51, int(51 - (quality / 100.0 * 36))))
+        
+        # Prepare FFmpeg command
+        if format == "mp4":
+            codec = "libx264"
+            cmd = [
+                'ffmpeg', '-y',  # Overwrite output
+                '-framerate', str(fps),
+                '-i', os.path.join(frame_dir, 'frame_%05d.png'),
+                '-c:v', codec,
+                '-preset', 'medium',  # Speed/compression trade-off
+                '-crf', str(crf),     # Quality
+                '-pix_fmt', 'yuv420p' # Widely compatible pixel format
+            ]
+        elif format == "webm":
+            codec = "libvpx-vp9"
+            cmd = [
+                'ffmpeg', '-y',
+                '-framerate', str(fps),
+                '-i', os.path.join(frame_dir, 'frame_%05d.png'),
+                '-c:v', codec,
+                '-b:v', f"{int(quality / 100.0 * 5000)}k"  # Bitrate
+            ]
+        else:  # avi, mov, etc.
+            codec = "mpeg4" if format == "avi" else "h264"
+            cmd = [
+                'ffmpeg', '-y',
+                '-framerate', str(fps),
+                '-i', os.path.join(frame_dir, 'frame_%05d.png'),
+                '-c:v', codec,
+                '-q:v', str(int(31 - (quality / 100.0 * 30)))  # Quality parameter
+            ]
+        
+        # Add audio if provided
+        if audio_path and os.path.exists(audio_path):
+            cmd.extend(['-i', audio_path, '-c:a', 'aac', '-shortest'])
+        
+        # Output file
+        cmd.append(output_path)
+        
+        print(f"Running FFmpeg: {' '.join(cmd)}")
+        subprocess.run(cmd, check=True)
+        
+        # Verify the output exists
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            raise ValueError("FFmpeg failed to create the video file")
+    
+    def _add_audio_with_ffmpeg(self, video_path, audio_path, format):
+        with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as temp_file:
+            temp_path = temp_file.name
+            
+        cmd = [
+            'ffmpeg', '-y',
+            '-i', video_path,
+            '-i', audio_path,
+            '-c:v', 'copy',
+            '-c:a', 'aac',
+            '-shortest',
+            temp_path
+        ]
+        
+        print(f"Adding audio with FFmpeg: {' '.join(cmd)}")
+        subprocess.run(cmd, check=True)
+        
+        # Replace the original file with the one with audio
+        os.replace(temp_path, video_path)
+        print(f"Added audio from {audio_path} to video")
