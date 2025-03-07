@@ -110,6 +110,7 @@ async def install_node(request):
                 
                 # Install each package individually
                 failed_packages = []
+                logger.info(f"Installing packages from requirements.txt: {', '.join(requirements)}")
                 for package in requirements:
                     logger.info(f"Installing package: {package}")
                     try:
