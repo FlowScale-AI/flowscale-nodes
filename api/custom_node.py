@@ -4,6 +4,7 @@ from aiohttp import web
 import os
 import git
 import subprocess
+import fnmatch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,8 +19,17 @@ async def list_nodes(request):
         # Get all items in the custom nodes directory
         all_items = os.listdir(CUSTOM_NODES_DIR)
         nodes = []
+
+        blacklist = [
+            "*.example",
+            "__pycache__",
+            "websocket_image_save.py",
+        ]
         
         for item_name in all_items:
+            if any(fnmatch.fnmatch(item_name, pattern) for pattern in blacklist):
+                continue
+                
             item_path = os.path.join(CUSTOM_NODES_DIR, item_name)
             item_type = "directory" if os.path.isdir(item_path) else "file"
             
