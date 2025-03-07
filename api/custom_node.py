@@ -68,11 +68,17 @@ async def install_node(request):
             logger.info(f"Installing APT packages: {', '.join(apt_packages)}")
             try:
                 apt_command = ["apt-get", "install", "-y"] + apt_packages
+
+                try:
+                    subprocess.run(["which", "sudo"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    subprocess.check_call(["sudo"] + apt_command)
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    logger.info("sudo not available, trying to install without it...")
+                    subprocess.check_call(apt_command)
                 subprocess.check_call(["sudo"] + apt_command)
                 logger.info("APT packages installed successfully")
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install APT packages: {e}")
-                return web.json_response({"error": "Failed to install APT packages", "details": str(e)}, status=500)
         
         # Install pip packages if provided
         if pip_packages and len(pip_packages) > 0:
