@@ -1,14 +1,7 @@
-import glob
-import json
 from server import PromptServer # type: ignore
 import logging
 from aiohttp import web
 import os
-import mimetypes
-import time
-import re
-import aiofiles
-import boto3
 import git
 import subprocess
 
@@ -16,6 +9,30 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 CUSTOM_NODES_DIR = os.path.join(os.getcwd(), "custom_nodes")
 
+@PromptServer.instance.routes.get("/flowscale/node/list")
+async def list_nodes(request):
+    """
+    Endpoint to list all custom nodes in the `custom_nodes` folder.
+    """
+    try:
+        # Get all items in the custom nodes directory
+        all_items = os.listdir(CUSTOM_NODES_DIR)
+        nodes = []
+        
+        for item_name in all_items:
+            item_path = os.path.join(CUSTOM_NODES_DIR, item_name)
+            item_type = "directory" if os.path.isdir(item_path) else "file"
+            
+            nodes.append({
+                "name": item_name,
+                "type": item_type
+            })
+            
+        return web.json_response(nodes, status=200)
+    except Exception as e:
+        logger.error(f"Error listing nodes: {str(e)}")
+        return web.json_response({"error": "Failed to list nodes", "details": str(e)}, status=500)
+    
 @PromptServer.instance.routes.post("/flowscale/node/install")
 async def install_node(request):
     """
@@ -41,7 +58,7 @@ async def install_node(request):
         logger.info(f"Cloning repository {repo_url} into {repo_path}...")
         repo = git.Repo.clone_from(repo_url, repo_path, branch=repo_branch)
 
-        if commit_sha:
+        if commit_sha and commit_sha.strip(): 
             logger.info(f"Checking out to commit {commit_sha}...")
             repo.git.checkout(commit_sha)
             logger.info(f"Successfully checked out to commit {commit_sha}")
