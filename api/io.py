@@ -413,21 +413,6 @@ async def delete_directory(request):
         shutil.rmtree(sanitized_path)
         logger.info(f"Directory deleted: {sanitized_path}")
         
-        # Call reboot endpoint after successful deletion
-        # import httpx
-        # import asyncio
-        
-        # async def call_reboot():
-        #     try:
-        #         async with httpx.AsyncClient() as client:
-        #             reboot_url = f"http://localhost:{PromptServer.instance.port}/manager/reboot"
-        #             response = await client.get(reboot_url)
-        #             logger.info(f"Reboot API response: {response.status_code}")
-        #     except Exception as e:
-        #         logger.error(f"Error calling reboot API: {e}")
-        
-        # asyncio.create_task(call_reboot())
-        
         return web.json_response({
             "message": f"Directory {directory_path} deleted successfully. Server will reboot."
         }, headers=headers)
@@ -435,6 +420,39 @@ async def delete_directory(request):
         logger.error(f"Error deleting directory: {e}")
         return web.json_response({
             "error": f"Error deleting directory: {str(e)}"
+        }, status=500, headers=headers)
+
+@PromptServer.instance.routes.get("/flowscale/io/reboot")
+async def reboot_server(request):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    }
+    
+    try:
+        import httpx
+        import asyncio
+        
+        async def call_reboot():
+            try:
+                async with httpx.AsyncClient() as client:
+                    reboot_url = f"http://localhost:{PromptServer.instance.port}/manager/reboot"
+                    response = await client.get(reboot_url)
+                    logger.info(f"Reboot API response: {response.status_code}")
+        
+            except Exception as e:
+                logger.error(f"Error calling reboot API: {e}")
+        
+        asyncio.create_task(call_reboot())
+        
+        return web.json_response({
+            "message": "Server will reboot."
+        }, headers=headers)
+    except Exception as e:
+        logger.error(f"Error rebooting server: {e}")
+        return web.json_response({
+            "error": f"Error rebooting server: {str(e)}"
         }, status=500, headers=headers)
 
 def is_file_ready(file_path, max_delay=15):

@@ -1,4 +1,4 @@
-print("Initializing Flowscale Nodes")
+print("Initializing FlowScale Nodes")
 from dotenv import load_dotenv
 
 from .api.io import * 
@@ -52,15 +52,15 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   "LoadModelFromPrivateS3": "[FS] Load Model to Private S3",
   "LoadModelFromCivitAI": "[FS] Load Model from CivitAI",
   "SaveModelToFlowscaleVolume": "[FS] Save Model to Flowscale Volume",
+  "GithubReadmeExtractor": "[FS] Extract GitHub Readme",
   "WebhookSender": "[FS] Send to Webhook",
   "FileLoaderNode": "[FS] Load File",
-  "ExtractPropertyNode": "[FS] Extract Property",
-  "FSLoadText": "[FS] Load Text",
-  "FSSaveText": "[FS] Save Text",
-  "FSLoadImage": "[FS] Load Image",
-  "FSSaveImage": "[FS] Save Image",
-  "FSLoadVideo": "[FS] Load Video",
-  "FSSaveVideo": "[FS] Save Video",
-  "GithubReadmeExtractor": "[FS] Extract GitHub Readme",
+  "ExtractPropertyNode": "[FS] Extract Property from JSON",
+  "FSLoadText": "[FS] Load Text (Input)",
+  "FSSaveText": "[FS] Save Text (Output)",
+  "FSLoadImage": "[FS] Load Image (Input)",
+  "FSSaveImage": "[FS] Save Image (Output)",
+  "FSLoadVideo": "[FS] Load Video (Input)",
+  "FSSaveVideo": "[FS] Save Video (Output)",
 }
   
