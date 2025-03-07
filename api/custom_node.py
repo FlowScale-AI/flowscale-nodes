@@ -105,8 +105,23 @@ async def install_node(request):
         if os.path.exists(requirements_file):
             logger.info(f"Found requirements.txt at {requirements_file}. Installing dependencies...")
             try:
-                subprocess.check_call([os.sys.executable, "-m", "pip", "install", "-r", requirements_file])
-                logger.info(f"Dependencies from {requirements_file} installed successfully.")
+                with open(requirements_file, 'r') as f:
+                    requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+                
+                # Install each package individually
+                failed_packages = []
+                for package in requirements:
+                    logger.info(f"Installing package: {package}")
+                    try:
+                        subprocess.check_call([os.sys.executable, "-m", "pip", "install", package])
+                    except subprocess.CalledProcessError as e:
+                        logger.error(f"Failed to install {package}: {e}")
+                        failed_packages.append(package)
+                
+                if failed_packages:
+                    error_message = f"Failed to install some packages: {', '.join(failed_packages)}"
+                    logger.error(error_message)
+
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install dependencies: {e}")
                 return web.json_response({"error": "Failed to install dependencies", "details": str(e)}, status=500)
