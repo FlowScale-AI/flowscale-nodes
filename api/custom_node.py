@@ -51,7 +51,7 @@ async def install_node(request):
     try:
         body = await request.json()
         repo_url = body.get("repo_url")
-        # repo_branch = body.get("branch", "main")
+        repo_branch = body.get("branch", "main")
         commit_sha = body.get("sha")  # Optional SHA for specific commit checkout
         pip_packages = body.get("pip_packages", [])
         apt_packages = body.get("apt_packages", [])
@@ -66,7 +66,7 @@ async def install_node(request):
             return web.json_response({"error": "Repository already installed"}, status=400)
 
         logger.info(f"Cloning repository {repo_url} into {repo_path}...")
-        repo = git.Repo.clone_from(repo_url, repo_path)
+        repo = git.Repo.clone_from(repo_url, repo_path, branch=repo_branch)
 
         if commit_sha and commit_sha.strip(): 
             logger.info(f"Checking out to commit {commit_sha}...")
@@ -78,14 +78,14 @@ async def install_node(request):
             logger.info(f"Installing APT packages: {', '.join(apt_packages)}")
             try:
                 apt_command = ["apt-get", "install", "-y"] + apt_packages
-
                 try:
                     subprocess.run(["which", "sudo"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    logger.info("Using sudo for apt-get install")
                     subprocess.check_call(["sudo"] + apt_command)
                 except (subprocess.SubprocessError, FileNotFoundError):
                     logger.info("sudo not available, trying to install without it...")
                     subprocess.check_call(apt_command)
-                subprocess.check_call(["sudo"] + apt_command)
+                
                 logger.info("APT packages installed successfully")
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install APT packages: {e}")
