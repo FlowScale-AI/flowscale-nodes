@@ -112,6 +112,9 @@ async def install_node(request):
                 failed_packages = []
                 logger.info(f"Installing packages from requirements.txt: {', '.join(requirements)}")
                 for package in requirements:
+                    if "transformers" in package:
+                        logger.info("Skipping transformers package installation")
+                        continue  # Skip installing transformers package
                     logger.info(f"Installing package: {package}")
                     try:
                         subprocess.check_call([os.sys.executable, "-m", "pip", "install", package])
