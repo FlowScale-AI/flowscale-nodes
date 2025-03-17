@@ -2,6 +2,7 @@ import os
 import random
 import string
 import numpy as np
+import torch
 from PIL import Image
 import folder_paths
 import requests
@@ -110,6 +111,10 @@ class FSSaveImage:
         results = []
         
         for i, image in enumerate(images):
+            # Convert from tensor to numpy if needed
+            if isinstance(image, torch.Tensor):
+                image = image.cpu().numpy()
+            
             # Convert from [0,1] to [0,255]
             img = (image * 255).astype(np.uint8)
             # Convert to PIL Image
