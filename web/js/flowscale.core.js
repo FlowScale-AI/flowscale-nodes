@@ -28,7 +28,7 @@ async function uploadVideo(file) {
 
 async function getVideoList() {
     try {
-        const res = await api.fetchApi('/api/fs/get_video_files');
+        const res = await api.fetchApi('/fs/get_video_files');  // Fixed endpoint URL
         if (res.status === 200) {
             const data = await res.json();
             return data.files || [];

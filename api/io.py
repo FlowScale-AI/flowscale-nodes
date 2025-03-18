@@ -502,3 +502,41 @@ async def upload_video(request):
 routes = [
     web.post("/upload/video", upload_video)
 ]
+
+import os
+from aiohttp import web
+import folder_paths
+from .log import logger
+
+VIDEO_EXTENSIONS = ['webm', 'mp4', 'mkv', 'gif', 'mov', 'avi', 'wmv']
+
+def setup_io_handlers():
+    @web.middleware
+    async def error_middleware(request, handler):
+        try:
+            response = await handler(request)
+            return response
+        except Exception as e:
+            logger.error(f"Error handling request: {e}")
+            return web.Response(status=500, text=str(e))
+
+    async def get_video_files(request):
+        input_dir = folder_paths.get_input_directory()
+        files = []
+        
+        try:
+            for f in os.listdir(input_dir):
+                if os.path.isfile(os.path.join(input_dir, f)):
+                    file_parts = f.split('.')
+                    if len(file_parts) > 1 and (file_parts[-1].lower() in VIDEO_EXTENSIONS):
+                        files.append(f)
+            
+            return web.json_response({"files": sorted(files)})
+        except Exception as e:
+            logger.error(f"Error getting video files: {e}")
+            return web.Response(status=500, text=str(e))
+
+    # Add routes to server
+    from server import PromptServer
+    PromptServer.instance.app.router.add_get('/fs/get_video_files', get_video_files)
+    logger.info("FlowScale IO handlers initialized")

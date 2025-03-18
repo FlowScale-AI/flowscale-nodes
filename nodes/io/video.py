@@ -33,7 +33,6 @@ class FSLoadVideo:
                     
         return {"required": {
                     "video": (sorted(files),),
-                    "frame_count": ("INT", {"default": 16, "min": 1, "max": 1000}),
                     "skip_first_frames": ("INT", {"default": 0, "min": 0, "max": 10000}),
                     "select_every_nth": ("INT", {"default": 1, "min": 1, "max": 100}),
                },
@@ -47,7 +46,7 @@ class FSLoadVideo:
     RETURN_NAMES = ("IMAGES",)
     FUNCTION = "load_video"
 
-    def load_video(self, video, frame_count=16, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None):
+    def load_video(self, video, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None):
         video_path = folder_paths.get_annotated_filepath(video)
         
         # Open the video file
@@ -67,7 +66,7 @@ class FSLoadVideo:
         frame_idx = 0
         
         # Read frames
-        while len(frames) < frame_count and frame_idx < total_frames:
+        while frame_idx < total_frames:
             ret, frame = cap.read()
             if not ret:
                 break
@@ -85,9 +84,6 @@ class FSLoadVideo:
             frame_float = np.array(frame_rgb).astype(np.float32) / 255.0
             
             frames.append(frame_float)
-            
-            if len(frames) >= frame_count:
-                break
         
         cap.release()
         
