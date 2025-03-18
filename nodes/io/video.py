@@ -185,7 +185,6 @@ class FSSaveVideo:
                 "format": (["mp4", "avi", "mov", "webm"], {"default": "mp4"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "audio_path": ("STRING", {"default": ""}),
-                "use_ffmpeg": ("BOOLEAN", {"default": True}),
                 "label": ("STRING", {"default": "Output Video"}),
             }
         }
