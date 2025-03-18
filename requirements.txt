@@ -10,3 +10,4 @@ numpy
 PyPDF2
 opencv-python
 soundfile
+mutagen

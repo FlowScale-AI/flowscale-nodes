@@ -4,7 +4,7 @@ from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
 from .nodes.io.text import FSLoadText, FSSaveText
 from .nodes.io.image import FSLoadImage, FSSaveImage
 from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
-from .nodes.io.audio import FSLoadAudio, FSSaveAudio
+from .nodes.io.audio import FSLoadAudio, FSSaveAudio, FSProcessAudio, FSCombineAudio
 from .utilitynodes.webhook import WebhookSender
 from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
@@ -34,6 +34,8 @@ NODE_CLASS_MAPPINGS = {
   "FSSaveVideo": FSSaveVideo,
   "FSLoadAudio": FSLoadAudio,
   "FSSaveAudio": FSSaveAudio,
+  "FSProcessAudio": FSProcessAudio,
+  "FSCombineAudio": FSCombineAudio,
   "GithubReadmeExtractor": GitHubReadmeExtractor,
 }
 
@@ -61,4 +63,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FSSaveVideo": f"[FS]{FS_NODE_ICON}Save Video (Output)",
     "FSLoadAudio": f"[FS]{FS_NODE_ICON}Load Audio (Input)",
     "FSSaveAudio": f"[FS]{FS_NODE_ICON}Save Audio (Output)",
+    "FSProcessAudio": f"[FS]{FS_NODE_ICON}Process Audio",
+    "FSCombineAudio": f"[FS]{FS_NODE_ICON}Combine Audio",
 }
