@@ -10,6 +10,7 @@ class FSLoadText:
                     "STRING",
                     {"multiline": True, "default": ""},
                 ),
+                "label": ("STRING", {"default": "Input Image"}),
             }
         }
 
@@ -20,7 +21,8 @@ class FSLoadText:
 
     CATEGORY = "FlowScale/IO"
 
-    def run(self, default_value=None):
+    def run(self, default_value=None, label="Input Image"):
+        print(f"I/O Label: {label}")
         return [default_value]
 
 
@@ -32,6 +34,9 @@ class FSSaveText:
                 "text": ("STRING", {"forceInput": True}),
                 "filename_prefix": ("STRING", {"default": "FlowScale_"}),
             },
+            "optional": {
+                "label": ("STRING", {"default": "Input Image"}),
+            },
         }
 
     FUNCTION = "save_text"
@@ -42,7 +47,8 @@ class FSSaveText:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
-    def save_text(self, text, filename_prefix="FlowScale_"):
+    def save_text(self, text, filename_prefix="FlowScale_", label="Input Image"):
+        print(f"I/O Label: {label}")
         import os
 
         random_segment = ''.join(random.choices(string.digits, k=6))

@@ -5,16 +5,10 @@ import numpy as np
 import cv2
 import folder_paths
 import tempfile
-from PIL import Image
 import re
 import requests
-from io import BytesIO
-import psutil
-import time
-import gc
 import shutil
 import subprocess
-import shlex
 import torch
 
 # List of supported video extensions
@@ -36,6 +30,9 @@ class FSLoadVideo:
                     "skip_first_frames": ("INT", {"default": 0, "min": 0, "max": 10000}),
                     "select_every_nth": ("INT", {"default": 1, "min": 1, "max": 100}),
                },
+               "optional": {
+                     "label": ("STRING", {"default": "Input Video"}),
+                },
                "hidden": {
                    "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
                }}
@@ -46,7 +43,8 @@ class FSLoadVideo:
     RETURN_NAMES = ("IMAGES",)
     FUNCTION = "load_video"
 
-    def load_video(self, video, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None):
+    def load_video(self, video, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None, label="Input Video"):
+        print(f"I/O Label: {label}")
         video_path = folder_paths.get_annotated_filepath(video)
         
         # Open the video file
@@ -117,6 +115,9 @@ class FSLoadVideoFromURL:
                 "skip_first_frames": ("INT", {"default": 0, "min": 0, "max": 10000}),
                 "select_every_nth": ("INT", {"default": 1, "min": 1, "max": 100}),
             },
+            "optional": {
+                "label": ("STRING", {"default": "Input Video"}),
+            },
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
             }
@@ -125,7 +126,9 @@ class FSLoadVideoFromURL:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("IMAGES",)
     FUNCTION = "load_video_from_url"
-    def load_video_from_url(self, video_url, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None):
+
+    def load_video_from_url(self, video_url, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None, label="Input Video"):
+        print(f"I/O Label: {label}")
         # Check if the URL is valid
         if not re.match(r'^(http|https)://', video_url):
             raise ValueError("Invalid URL format. Please provide a valid HTTP or HTTPS URL.")
@@ -157,6 +160,7 @@ class FSSaveVideo:
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "audio_path": ("STRING", {"default": ""}),
                 "use_ffmpeg": ("BOOLEAN", {"default": True}),
+                "label": ("STRING", {"default": "Output Video"}),
             }
         }
     RETURN_TYPES = ("STRING",)
@@ -167,7 +171,8 @@ class FSSaveVideo:
     CATEGORY = "FlowScale/IO"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename_prefix="FlowScale_", fps=24.0, format="mp4", quality=95, audio_path="", use_ffmpeg=True):
+    def save_video(self, images, filename_prefix="FlowScale_", fps=24.0, format="mp4", quality=95, audio_path="", label="Output Video"):
+        print(f"I/O Label: {label}")
         output_dir = folder_paths.get_output_directory()
         
         random_segment = ''.join(random.choices(string.digits, k=6))
@@ -185,7 +190,7 @@ class FSSaveVideo:
             # Get dimensions
             frame_count, height, width, channels = uint8_frames.shape
             
-            if use_ffmpeg and self._has_ffmpeg():
+            if self._has_ffmpeg():
                 # Save frames to temporary directory
                 temp_dir = tempfile.mkdtemp()
                 try:

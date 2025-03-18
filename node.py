@@ -3,7 +3,7 @@ from .nodes.model_utils import LoadModelFromCivitAI
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
 from .nodes.io.text import FSLoadText, FSSaveText
 from .nodes.io.image import FSLoadImage, FSSaveImage
-from .nodes.io.video import FSLoadVideo, FSSaveVideo
+from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
 from .utilitynodes.webhook import WebhookSender
 from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
@@ -28,6 +28,7 @@ NODE_CLASS_MAPPINGS = {
   "FSLoadImage": FSLoadImage,
   "FSSaveImage": FSSaveImage,
   "FSLoadVideo": FSLoadVideo,
+  "FSLoadVideoFromURL": FSLoadVideoFromURL,
   "FSSaveVideo": FSSaveVideo,
   "GithubReadmeExtractor": GitHubReadmeExtractor,
 }
@@ -52,5 +53,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   "FSLoadImage": "[FS] Load Image (Input)",
   "FSSaveImage": "[FS] Save Image (Output)",
   "FSLoadVideo": "[FS] Load Video (Input)",
+  "FSLoadVideoFromURL": "[FS] Load Video from URL (Input)",
   "FSSaveVideo": "[FS] Save Video (Output)",
 }

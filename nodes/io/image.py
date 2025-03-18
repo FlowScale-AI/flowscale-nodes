@@ -18,6 +18,7 @@ class FSLoadImage:
                 "image": (sorted(files), {"image_upload": True}),
             },
             "optional": {
+                "label": ("STRING", {"default": "Input Image"}),
                 "image_url": ("STRING", {"default": ""}),
             }
         }
@@ -29,7 +30,7 @@ class FSLoadImage:
 
     CATEGORY = "FlowScale/IO"
 
-    def load_image(self, image, image_url=""):
+    def load_image(self, image, image_url="", label="Input Image"):
         try:
             # If image_url is provided, load from URL
             if image_url:
@@ -70,6 +71,7 @@ class FSLoadImage:
             # Add batch dimension expected by ComfyUI
             img_tensor = img_np[np.newaxis, ...]
             
+            print(f"I/O Label: {label}")
             return (img_tensor,)
         except Exception as e:
             print(f"Error loading image: {e}")
@@ -89,6 +91,7 @@ class FSSaveImage:
                 "format": (["png", "jpg", "jpeg", "webp"], {"default": "png"})
             },
             "optional": {
+                "label": ("STRING", {"default": "Output Image"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "lossless": ("BOOLEAN", {"default": False, "tooltip": "Use lossless compression for webp"})
             }
@@ -102,7 +105,7 @@ class FSSaveImage:
     CATEGORY = "FlowScale/IO"
     OUTPUT_NODE = True
     
-    def save_image(self, images, filename_prefix, format="png", quality=100, lossless=False):
+    def save_image(self, images, filename_prefix, format="png", quality=100, lossless=False, label="Output Image"):
         output_dir = folder_paths.get_output_directory()
         
         # Create directory if it doesn't exist
@@ -141,5 +144,6 @@ class FSSaveImage:
                 pil_image.save(save_path)
                 
             results.append(save_path)
+        print(f"I/O Label: {label}")
         
         return (results[0] if results else "",)
