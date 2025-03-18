@@ -8,9 +8,9 @@ async function uploadVideo(file) {
             type: file.type,
             lastModified: file.lastModified,
         });
-        body.append("video", new_file);
+        body.append("image", new_file);
         
-        const resp = await api.fetchApi("/upload/video", {
+        const resp = await api.fetchApi("/upload/image", {
             method: "POST",
             body,
         });
@@ -22,6 +22,20 @@ async function uploadVideo(file) {
         }
     } catch (error) {
         alert(error);
+    }
+}
+
+async function getVideoList() {
+    try {
+        const res = await api.fetchApi('/api/fs/get_video_files');
+        if (res.status === 200) {
+            const data = await res.json();
+            return data.files || [];
+        }
+        return [];
+    } catch (error) {
+        console.error("Error fetching video files:", error);
+        return [];
     }
 }
 
@@ -38,7 +52,7 @@ function addVideoUploadFeature(nodeType, nodeData) {
             type: "file",
             accept: "video/webm,video/mp4,video/x-matroska,image/gif",
             style: "display: none",
-            async onchange() {
+            onchange: async function() {
                 if (fileInput.files.length) {
                     const file = fileInput.files[0];
                     await uploadVideo(file);
@@ -53,7 +67,7 @@ function addVideoUploadFeature(nodeType, nodeData) {
                         }
                     }
                 }
-            }.bind(this),
+            }.bind(this)
         });
         
         document.body.appendChild(fileInput);
@@ -79,7 +93,8 @@ function addVideoUploadFeature(nodeType, nodeData) {
 app.registerExtension({
     name: "FlowScale.Core",
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        // Add upload support to FSLoadVideo node
+        console.log("Registering node type:", nodeType);
+        console.log("Node data:", nodeData);
         if (nodeData.name === "FSLoadVideo") {
             addVideoUploadFeature(nodeType, nodeData);
         }
