@@ -26,7 +26,11 @@ class FSLoadVideo:
         return {
             "required": {},
             "optional": {
-                "video": (sorted(files), {"video_upload": True}),
+                "video": (sorted(files), {
+                    "video_upload": True,  # Enable direct video upload
+                    "file_types": [".mp4", ".avi", ".mov", ".webm", ".mkv"],
+                    "upload_to_input": True
+                }),
                 "video_url": ("STRING", {"default": ""}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "max_frames": ("INT", {"default": 64, "min": 1, "max": 1000, "step": 1}),
