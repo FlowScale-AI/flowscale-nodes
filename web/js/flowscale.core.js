@@ -357,7 +357,6 @@ function addMultiFileUploadFeature(nodeType, nodeData) {
                 }
             } catch (error) {
                 console.error("Error uploading files:", error);
-                alert("Some files failed to upload.");
             } finally {
                 // Reset upload button safely
                 if (uploadButtonWidget) {
