@@ -92,8 +92,22 @@ class FSLoadVideo:
         # Convert to tensor
         batch = torch.from_numpy(np.stack(frames))
         
-        return (batch,)
+        # Prepare preview info
+        preview = {
+            "ui": {
+                "video": [{
+                    "filename": os.path.basename(video_path),
+                    "type": "input",
+                    "fps": fps,
+                    "total_frames": total_frames,
+                    "format": os.path.splitext(video_path)[1][1:],
+                    "url": f"file={video_path}"
+                }]
+            }
+        }
         
+        return {"ui": preview, "result": (batch,)}
+
     @classmethod
     def IS_CHANGED(s, video, **kwargs):
         video_path = folder_paths.get_annotated_filepath(video)
@@ -142,9 +156,21 @@ class FSLoadVideoFromURL:
         temp_video_path = os.path.join(tempfile.gettempdir(), "temp_video.mp4")
         with open(temp_video_path, 'wb') as f:
             f.write(response.content)
+            
+        # Create preview info
+        preview = {
+            "ui": {
+                "video": [{
+                    "filename": os.path.basename(video_url),
+                    "type": "input",
+                    "url": video_url
+                }]
+            }
+        }
         
         # Load the video using OpenCV
-        return FSLoadVideo().load_video(temp_video_path, skip_first_frames, select_every_nth, prompt, extra_pnginfo)
+        result = FSLoadVideo().load_video(temp_video_path, skip_first_frames, select_every_nth, prompt, extra_pnginfo)
+        return {"ui": preview, "result": result[0]}
 
 class FSSaveVideo:
     @classmethod
@@ -282,7 +308,22 @@ class FSSaveVideo:
                         print("FFmpeg not found, cannot add audio to video")
             
             print(f"Video saved to: {output_path}")
-            return (output_path,)
+            
+            # Create preview info
+            preview = {
+                "ui": {
+                    "video": [{
+                        "filename": filename,
+                        "type": "output",
+                        "fps": fps,
+                        "total_frames": len(images),
+                        "format": format,
+                        "url": f"file={output_path}"
+                    }]
+                }
+            }
+            
+            return {"ui": preview, "result": (output_path,)}
             
         except Exception as e:
             print(f"Error saving video: {e}")

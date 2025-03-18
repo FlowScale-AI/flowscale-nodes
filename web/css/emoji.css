@@ -1,0 +1,23 @@
+.video-preview {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.video-preview video {
+    width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+    background: #000;
+}
+
+.video-preview .info {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #aaa;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+}

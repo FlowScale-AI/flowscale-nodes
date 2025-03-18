@@ -1,6 +1,61 @@
 import { app } from '../../../scripts/app.js'
 import { api } from '../../../scripts/api.js'
 
+// Load the Flowscale CSS
+const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.type = 'text/css';
+link.href = 'extensions/flowscale-nodes/web/css/emoji.css';
+document.head.appendChild(link);
+
+// Override node title handling
+function setupFlowscaleNode(node, nodeData) {
+    // ...existing code...
+}
+
+function createVideoPreview(node, videoInfo) {
+    // Remove existing preview if any
+    const existingPreview = node.querySelector('.video-preview');
+    if (existingPreview) {
+        existingPreview.remove();
+    }
+
+    // Create video container
+    const container = document.createElement('div');
+    container.className = 'video-preview';
+    container.style.cssText = 'margin: 10px; padding: 10px; border: 1px solid #666; border-radius: 4px;';
+
+    // Create video element
+    const video = document.createElement('video');
+    video.style.cssText = 'width: 100%; max-height: 200px; border-radius: 2px;';
+    video.controls = true;
+
+    // Set video source based on type
+    if (videoInfo.url.startsWith('file=')) {
+        const filePath = videoInfo.url.substring(5);
+        video.src = `/view/${encodeURIComponent(filePath)}`;
+    } else {
+        video.src = videoInfo.url;
+    }
+
+    // Add video info
+    const info = document.createElement('div');
+    info.style.cssText = 'margin-top: 5px; font-size: 12px; color: #aaa;';
+    info.innerHTML = `
+        <div>Filename: ${videoInfo.filename}</div>
+        ${videoInfo.fps ? `<div>FPS: ${videoInfo.fps}</div>` : ''}
+        ${videoInfo.total_frames ? `<div>Frames: ${videoInfo.total_frames}</div>` : ''}
+        ${videoInfo.format ? `<div>Format: ${videoInfo.format}</div>` : ''}
+    `;
+
+    // Add elements to container
+    container.appendChild(video);
+    container.appendChild(info);
+
+    // Add container to node
+    node.appendChild(container);
+}
+
 async function uploadVideo(file) {
     try {
         // Wrap file in formdata so it includes filename
@@ -88,6 +143,19 @@ function addVideoUploadFeature(nodeType, nodeData) {
             }
         };
     };
+
+    // Override onExecuted to handle video preview
+    const origOnExecuted = nodeType.prototype.onExecuted;
+    nodeType.prototype.onExecuted = function(message) {
+        if (origOnExecuted) {
+            origOnExecuted.call(this, message);
+        }
+
+        // Handle video preview data
+        if (message && message.ui && message.ui.video && message.ui.video.length > 0) {
+            createVideoPreview(this.domElement, message.ui.video[0]);
+        }
+    };
 }
 
 // Register extension 
@@ -96,7 +164,16 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         console.log("Registering node type:", nodeType);
         console.log("Node data:", nodeData);
-        if (nodeData.name === "FSLoadVideo") {
+        
+        // Apply Flowscale styling to all nodes that have our icon
+        if (nodeData.name && nodeData.name.startsWith("FS")) {
+            setupFlowscaleNode(nodeType, nodeData);
+        }
+        
+        // Add video preview to video nodes
+        if (nodeData.name === "FSLoadVideo" || 
+            nodeData.name === "FSLoadVideoFromURL" || 
+            nodeData.name === "FSSaveVideo") {
             addVideoUploadFeature(nodeType, nodeData);
         }
     }
