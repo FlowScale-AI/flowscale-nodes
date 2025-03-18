@@ -309,10 +309,16 @@ function addMultiFileUploadFeature(nodeType, nodeData) {
             style: "display: none",
             onchange: async function() {
                 if (fileInput.files.length) {
-                    // Show loading indicator
-                    const uploadButtonText = this.widgets.find(w => w.name === "upload_files");
-                    const originalText = uploadButtonText.name;
-                    uploadButtonText.name = "Uploading...";
+                    // Find the upload button widget safely
+                    const uploadButton = this.widgets.find(w => w.name === "upload_files");
+                    if (!uploadButton) {
+                        console.error("Upload button widget not found");
+                        return;
+                    }
+                    
+                    // Store original text and update to show loading
+                    const originalText = uploadButton.name;
+                    uploadButton.name = "Uploading...";
                     this.setDirtyCanvas(true, false);
                     
                     try {
@@ -350,9 +356,11 @@ function addMultiFileUploadFeature(nodeType, nodeData) {
                         console.error("Error uploading files:", error);
                         alert("Some files failed to upload.");
                     } finally {
-                        // Reset upload button
-                        uploadButtonText.name = originalText;
-                        this.setDirtyCanvas(true, false);
+                        // Reset upload button safely
+                        if (uploadButton) {
+                            uploadButton.name = originalText;
+                            this.setDirtyCanvas(true, false);
+                        }
                     }
                 }
             }.bind(this)

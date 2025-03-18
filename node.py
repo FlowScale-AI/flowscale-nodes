@@ -9,6 +9,7 @@ from .utilitynodes.webhook import WebhookSender
 from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
 from .utilitynodes.multifileloader import MultiFileLoaderNode
+from .utilitynodes.file_extractor import FileExtractorNode
 from .utilitynodes.json_extractor import ExtractPropertyNode
 from .constants import FS_NODE_ICON
 
@@ -26,6 +27,7 @@ NODE_CLASS_MAPPINGS = {
   "WebhookSender": WebhookSender,
   "FileLoaderNode": FileLoaderNode,
   "MultiFileLoaderNode": MultiFileLoaderNode,
+  "FileExtractorNode": FileExtractorNode,
   "ExtractPropertyNode": ExtractPropertyNode,
   "FSLoadText": FSLoadText,
   "FSSaveText": FSSaveText,
@@ -56,6 +58,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WebhookSender": f"[FS]{FS_NODE_ICON}Send to Webhook",
     "FileLoaderNode": f"[FS]{FS_NODE_ICON}Load File",
     "MultiFileLoaderNode": f"[FS]{FS_NODE_ICON}Multi-File Uploader",
+    "FileExtractorNode": f"[FS]{FS_NODE_ICON}Extract File",
     "ExtractPropertyNode": f"[FS]{FS_NODE_ICON}Extract Property from JSON",
     "FSLoadText": f"[FS]{FS_NODE_ICON}Load Text (Input)",
     "FSSaveText": f"[FS]{FS_NODE_ICON}Save Text (Output)",
