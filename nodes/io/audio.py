@@ -37,7 +37,7 @@ class FSLoadAudio:
     def load_audio(self, audio, audio_url="", label="Input Audio"):
         try:
             # If audio_url is provided, load from URL
-            if audio_url:
+            if (audio_url):
                 try:
                     response = requests.get(audio_url)
                     response.raise_for_status()
@@ -48,8 +48,6 @@ class FSLoadAudio:
                     # Use torchaudio to load audio
                     waveform, sample_rate = torchaudio.load(temp_file_path)
                     os.unlink(temp_file_path)  # Delete the temporary file
-                    
-                    path = f"URL: {audio_url}"
                 except Exception as e:
                     print(f"Error loading audio from URL: {e}")
                     raise
@@ -62,34 +60,19 @@ class FSLoadAudio:
                     
                 # Use torchaudio to load audio
                 waveform, sample_rate = torchaudio.load(audio_path)
-                path = audio_path
 
             # Create audio dictionary in the expected format
             audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
             
-            # Create preview info
-            preview = {
-                "ui": {
-                    "audio": [{
-                        "filename": os.path.basename(path),
-                        "type": "input",
-                        "sample_rate": sample_rate,
-                        "channels": waveform.shape[0],
-                        "format": os.path.splitext(path)[1][1:] if "." in path else "wav",
-                        "url": f"file={path}" if not audio_url else audio_url
-                    }]
-                }
-            }
-            
             print(f"I/O Label: {label}")
-            return {"result": (audio_data,)}
+            return (audio_data,)
 
         except Exception as e:
             print(f"Error loading audio: {e}")
             # Return empty audio dict on error
             empty_waveform = torch.zeros((1, 1), dtype=torch.float32)
             empty_audio = {"waveform": empty_waveform.unsqueeze(0), "sample_rate": 44100}
-            return {"result": (empty_audio,)}
+            return (empty_audio,)
 
     @classmethod
     def IS_CHANGED(s, audio, **kwargs):
@@ -330,7 +313,6 @@ class FSProcessAudio:
                 max_val = torch.max(torch.abs(waveform))
                 if max_val > 0:
                     waveform = waveform / max_val
-                operation_desc = "Normalized to peak amplitude"
                     
             elif operation == "fade_in":
                 # Apply fade in effect (linear fade)
@@ -340,7 +322,6 @@ class FSProcessAudio:
                         fade_samples = waveform.shape[1]
                     fade = torch.linspace(0, 1, fade_samples)
                     waveform[:, :fade_samples] *= fade
-                operation_desc = f"Applied {fade_time}s fade in"
                     
             elif operation == "fade_out":
                 # Apply fade out effect (linear fade)
@@ -350,7 +331,6 @@ class FSProcessAudio:
                         fade_samples = waveform.shape[1]
                     fade = torch.linspace(1, 0, fade_samples)
                     waveform[:, -fade_samples:] *= fade
-                operation_desc = f"Applied {fade_time}s fade out"
                     
             elif operation == "trim":
                 # Trim audio to specified time range
@@ -363,7 +343,6 @@ class FSProcessAudio:
                     end_sample = waveform.shape[1]
                     
                 waveform = waveform[:, start_sample:end_sample]
-                operation_desc = f"Trimmed from {trim_start}s to {trim_end if trim_end > 0 else 'end'}s"
                 
             elif operation == "resample":
                 # Resample audio to target sample rate
@@ -371,19 +350,16 @@ class FSProcessAudio:
                     resampler = torchaudio.transforms.Resample(sample_rate, target_sr)
                     waveform = resampler(waveform)
                     sample_rate = target_sr
-                operation_desc = f"Resampled to {target_sr} Hz"
                     
             elif operation == "mono":
                 # Convert stereo to mono
                 if waveform.shape[0] > 1:
                     waveform = torch.mean(waveform, dim=0, keepdim=True)
-                operation_desc = "Converted to mono"
                     
             elif operation == "stereo":
                 # Convert mono to stereo if needed
                 if waveform.shape[0] == 1:
                     waveform = waveform.repeat(2, 1)
-                operation_desc = "Converted to stereo"
                     
             elif operation == "speed":
                 # Change playback speed without changing pitch
@@ -394,7 +370,6 @@ class FSProcessAudio:
                     ]
                     waveform, sample_rate = torchaudio.sox_effects.apply_effects_tensor(
                         waveform, sample_rate, effects)
-                operation_desc = f"Changed speed by factor of {speed_factor}"
             
             # Restore batch dimension if it was present
             if len(orig_shape) > 2:
@@ -406,26 +381,13 @@ class FSProcessAudio:
                 "sample_rate": sample_rate
             }
             
-            # Create preview info
-            preview = {
-                "ui": {
-                    "audio": [{
-                        "type": "processed",
-                        "operation": operation_desc,
-                        "sample_rate": sample_rate,
-                        "channels": waveform.shape[-2],
-                        "duration": waveform.shape[-1] / sample_rate
-                    }]
-                }
-            }
-            
             print(f"I/O Label: {label}")
-            return {"ui": preview, "result": (processed_audio,)}
+            return (processed_audio,)
             
         except Exception as e:
             print(f"Error processing audio: {e}")
             # Return original audio on error
-            return {"ui": {"error": str(e)}, "result": (audio,)}
+            return (audio,)
 
 class FSCombineAudio:
     @classmethod
@@ -488,12 +450,9 @@ class FSCombineAudio:
                 combined[:, :waveform1.shape[1]] += waveform1
                 combined[:, :waveform2.shape[1]] += waveform2
                 
-                operation_desc = "Overlay"
-                
             elif operation == "concat":
                 # Concatenate audio2 after audio1
                 combined = torch.cat([waveform1, waveform2], dim=1)
-                operation_desc = "Concatenated"
                 
             elif operation == "mix":
                 # Mix audio1 and audio2 (average them)
@@ -510,8 +469,6 @@ class FSCombineAudio:
                 overlap = min(waveform1.shape[1], waveform2.shape[1])
                 if overlap > 0:
                     combined[:, :overlap] *= 0.5  # Average in the overlapping region
-                
-                operation_desc = "Mixed"
             
             # Create the combined audio dict
             combined_audio = {
@@ -519,23 +476,10 @@ class FSCombineAudio:
                 "sample_rate": sample_rate
             }
             
-            # Create preview info
-            preview = {
-                "ui": {
-                    "audio": [{
-                        "type": "processed",
-                        "operation": operation_desc,
-                        "sample_rate": sample_rate,
-                        "channels": combined.shape[0],
-                        "duration": combined.shape[1] / sample_rate
-                    }]
-                }
-            }
-            
             print(f"I/O Label: {label}")
-            return {"ui": preview, "result": (combined_audio,)}
+            return (combined_audio,)
             
         except Exception as e:
             print(f"Error combining audio: {e}")
             # Return first audio on error
-            return {"ui": {"error": str(e)}, "result": (audio1,)}
+            return (audio1,)

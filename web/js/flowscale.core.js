@@ -183,8 +183,6 @@ app.registerExtension({
         // Add upload features to specific nodes
         if (nodeData.name === "FSLoadVideo") {
             addVideoUploadFeature(nodeType, nodeData);
-        } else if (nodeData.name === "FSLoadAudio") {
-            // addAudioUploadFeature(nodeType, nodeData);
         }
     }
 });
