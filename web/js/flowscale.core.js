@@ -302,77 +302,82 @@ function addMultiFileUploadFeature(nodeType, nodeData) {
 
         // Add file input element for multi-file upload
         const fileInput = document.createElement("input");
-        Object.assign(fileInput, {
-            type: "file",
-            accept: "*/*", // Accept all file types
-            multiple: true, // Allow multiple file selection
-            style: "display: none",
-            onchange: async function() {
-                if (fileInput.files.length) {
-                    // Find the upload button widget safely
-                    const uploadButton = this.widgets.find(w => w.name === "upload_files");
-                    if (!uploadButton) {
-                        console.error("Upload button widget not found");
-                        return;
+        fileInput.type = "file";
+        fileInput.accept = "*/*"; // Accept all file types
+        fileInput.multiple = true; // Allow multiple file selection
+        fileInput.style.display = "none";
+        
+        let uploadButtonWidget = null;
+        
+        // Create a safer file change handler
+        const handleFileChange = async function() {
+            if (!fileInput.files.length) return;
+            
+            // Get the upload button widget by name - do this here instead of closure
+            uploadButtonWidget = this.widgets.find(w => w.name === "upload_files");
+            
+            // Store original text and update to show loading if button exists
+            let originalText = "Upload Files";
+            if (uploadButtonWidget) {
+                originalText = uploadButtonWidget.name;
+                uploadButtonWidget.name = "Uploading...";
+                this.setDirtyCanvas(true, false);
+            }
+            
+            try {
+                // Upload files and get their paths
+                const uploadedPaths = await uploadFiles(Array.from(fileInput.files));
+                
+                // Get the file_list widget
+                const fileListWidget = this.widgets.find(w => w.name === "file_list");
+                if (fileListWidget) {
+                    let existingFiles = [];
+                    try {
+                        // Try to parse existing file list
+                        existingFiles = JSON.parse(fileListWidget.value);
+                        if (!Array.isArray(existingFiles)) {
+                            existingFiles = [];
+                        }
+                    } catch (e) {
+                        existingFiles = [];
                     }
                     
-                    // Store original text and update to show loading
-                    const originalText = uploadButton.name;
-                    uploadButton.name = "Uploading...";
-                    this.setDirtyCanvas(true, false);
+                    // Combine existing and new files
+                    const updatedFiles = [...existingFiles, ...uploadedPaths];
                     
-                    try {
-                        // Upload files and get their paths
-                        const uploadedPaths = await uploadFiles(Array.from(fileInput.files));
-                        
-                        // Get the file_list widget
-                        const fileListWidget = this.widgets.find(w => w.name === "file_list");
-                        if (fileListWidget) {
-                            let existingFiles = [];
-                            try {
-                                // Try to parse existing file list
-                                existingFiles = JSON.parse(fileListWidget.value);
-                                if (!Array.isArray(existingFiles)) {
-                                    existingFiles = [];
-                                }
-                            } catch (e) {
-                                existingFiles = [];
-                            }
-                            
-                            // Combine existing and new files
-                            const updatedFiles = [...existingFiles, ...uploadedPaths];
-                            
-                            // Update the widget value
-                            fileListWidget.value = JSON.stringify(updatedFiles, null, 2);
-                            
-                            // Create preview of files
-                            createFileListPreview(this.domElement, updatedFiles);
-                            
-                            if (fileListWidget.callback) {
-                                fileListWidget.callback(fileListWidget.value);
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Error uploading files:", error);
-                        alert("Some files failed to upload.");
-                    } finally {
-                        // Reset upload button safely
-                        if (uploadButton) {
-                            uploadButton.name = originalText;
-                            this.setDirtyCanvas(true, false);
-                        }
+                    // Update the widget value
+                    fileListWidget.value = JSON.stringify(updatedFiles, null, 2);
+                    
+                    // Create preview of files
+                    createFileListPreview(this.domElement, updatedFiles);
+                    
+                    if (fileListWidget.callback) {
+                        fileListWidget.callback(fileListWidget.value);
                     }
                 }
-            }.bind(this)
-        });
+            } catch (error) {
+                console.error("Error uploading files:", error);
+                alert("Some files failed to upload.");
+            } finally {
+                // Reset upload button safely
+                if (uploadButtonWidget) {
+                    uploadButtonWidget.name = originalText;
+                    this.setDirtyCanvas(true, false);
+                }
+            }
+        }.bind(this);
         
+        // Assign the handler to the file input
+        fileInput.onchange = handleFileChange;
+        
+        // Add file input to document
         document.body.appendChild(fileInput);
 
         // Add upload button widget
-        const uploadWidget = this.addWidget("button", "Upload Files", "upload_files", () => {
+        uploadButtonWidget = this.addWidget("button", "Upload Files", "upload_files", () => {
             fileInput.click();
         });
-        uploadWidget.options.serialize = false;
+        uploadButtonWidget.options.serialize = false;
         
         // Add clear button widget
         const clearWidget = this.addWidget("button", "Clear Files", "clear_files", () => {
