@@ -64,11 +64,12 @@ async function uploadVideo(file) {
             type: file.type,
             lastModified: file.lastModified,
         });
-        body.append("image", new_file);
+        body.append("video", new_file);
         
-        const resp = await api.fetchApi("/upload/image", {
+        // Upload the file
+        const resp = await api.fetchApi("/flowscale/io/upload", {
             method: "POST",
-            body,
+            body: body
         });
 
         if (resp.status === 200) {
@@ -83,10 +84,19 @@ async function uploadVideo(file) {
 
 async function getVideoList() {
     try {
-        const res = await api.fetchApi('/fs/get_video_files');  // Fixed endpoint URL
+        const res = await api.fetchApi('/flowscale/io/list?directory=input');  // Changed from /fs/get_video_files
         if (res.status === 200) {
             const data = await res.json();
-            return data.files || [];
+            // Filter for video files
+            const videoFiles = data.directory_contents.filter(file => 
+                file.toLowerCase().endsWith('.mp4') || 
+                file.toLowerCase().endsWith('.webm') || 
+                file.toLowerCase().endsWith('.gif') ||
+                file.toLowerCase().endsWith('.mov') ||
+                file.toLowerCase().endsWith('.avi') ||
+                file.toLowerCase().endsWith('.mkv')
+            );
+            return videoFiles;
         }
         return [];
     } catch (error) {

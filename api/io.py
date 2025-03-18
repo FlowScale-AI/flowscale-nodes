@@ -33,13 +33,23 @@ async def upload_media(request):
         filename = os.path.basename(field.filename)
         filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
 
-        # Check content type for images and videos
-        content_type = field.headers.get('Content-Type', '')
-        if not (content_type.startswith('image/') or content_type.startswith('video/')):
-            return web.json_response({'error': 'Invalid content type. Only images and videos are allowed.'}, status=400, headers=headers)
+        # Get the file extension
+        ext = os.path.splitext(filename)[1].lower()
+        
+        # Define allowed extensions
+        allowed_image_exts = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+        allowed_video_exts = ['.mp4', '.webm', '.mkv', '.mov', '.avi']
+        
+        # Check if extension is allowed
+        if ext not in allowed_image_exts + allowed_video_exts:
+            return web.json_response(
+                {'error': 'Invalid file type. Only images and videos are allowed.'}, 
+                status=400, 
+                headers=headers
+            )
 
+        # Determine target directory (input for both images and videos)
         media_directory = os.path.join(os.getcwd(), "input")
-
         os.makedirs(media_directory, exist_ok=True)
 
         file_path = os.path.join(media_directory, filename)
@@ -53,7 +63,12 @@ async def upload_media(request):
                 size += len(chunk)
                 await f.write(chunk)
 
-        return web.json_response({'message': 'File uploaded successfully.', 'filename': filename, 'size': size}, headers=headers)
+        return web.json_response({
+            'message': 'File uploaded successfully.',
+            'filename': filename,
+            'size': size,
+            'type': 'video' if ext in allowed_video_exts else 'image'
+        }, headers=headers)
 
     except Exception as e:
         logger.error(f"Error uploading file: {e}")
