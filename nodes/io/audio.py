@@ -21,7 +21,7 @@ class FSLoadAudio:
         files = folder_paths.filter_files_content_types(os.listdir(input_dir), ["audio", "video"])
         return {
             "required": {
-                "audio": (sorted(files), {"audio_upload": True}),
+                "audio": (sorted(files), ),
             },
             "optional": {
                 "label": ("STRING", {"default": "Input Audio"}),
