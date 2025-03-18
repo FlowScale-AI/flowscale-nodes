@@ -108,57 +108,6 @@ class FSLoadVideo:
             return "Invalid video file: {}".format(video)
         return True
 
-class FSLoadVideoPath:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "video_path": ("STRING", {"default": ""}),
-            },
-            "optional": {
-                "start_frame": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "max_frames": ("INT", {"default": 64, "min": 1, "max": 1000, "step": 1}),
-                "skip_frames": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "resize_to_width": ("INT", {"default": 512, "min": 0, "max": 4096, "step": 8}),
-                "resize_to_height": ("INT", {"default": 0, "min": 0, "max": 2160, "step": 8}),
-                "batch_size": ("INT", {"default": 4, "min": 1, "max": 16, "step": 1}),
-                "auto_resize_high_res": ("BOOLEAN", {"default": True}),
-            }
-        }
-    RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
-    RETURN_NAMES = ("frames", "frame_count", "width", "height")
-    FUNCTION = "load_video"
-    CATEGORY = "IO"
-    def load_video(self, video_path, start_frame=0, max_frames=64, skip_frames=0, 
-                   resize_to_width=512, resize_to_height=0, batch_size=4, auto_resize_high_res=True):
-        # Check if the path is a URL
-        if video_path.startswith(('http://', 'https://')):
-            # Create FSLoadVideo instance and call with URL
-            loader = FSLoadVideo()
-            return loader.load_video(
-                video_url=video_path,
-                start_frame=start_frame,
-                max_frames=max_frames,
-                skip_frames=skip_frames,
-                resize_to_width=resize_to_width,
-                resize_to_height=resize_to_height,
-                batch_size=batch_size,
-                auto_resize_high_res=auto_resize_high_res
-            )
-        else:
-            # Otherwise treat as a local path
-            loader = FSLoadVideo()
-            return loader.load_video(
-                video=video_path,
-                start_frame=start_frame,
-                max_frames=max_frames, 
-                skip_frames=skip_frames,
-                resize_to_width=resize_to_width,
-                resize_to_height=resize_to_height,
-                batch_size=batch_size,
-                auto_resize_high_res=auto_resize_high_res
-            )
-
 class FSSaveVideo:
     @classmethod
     def INPUT_TYPES(s):
@@ -195,8 +144,8 @@ class FSSaveVideo:
         os.makedirs(output_dir, exist_ok=True)
         
         try:
-            # Convert images from [0,1] to [0,255] range
-            uint8_frames = (images * 255).astype(np.uint8)
+            # Convert tensor to numpy and then to uint8
+            uint8_frames = (images.cpu().numpy() * 255).astype(np.uint8)
             
             # Get dimensions
             frame_count, height, width, channels = uint8_frames.shape
