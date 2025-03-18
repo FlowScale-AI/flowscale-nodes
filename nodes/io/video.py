@@ -170,7 +170,14 @@ class FSLoadVideoFromURL:
         
         # Load the video using OpenCV
         result = FSLoadVideo().load_video(temp_video_path, skip_first_frames, select_every_nth, prompt, extra_pnginfo)
-        return {"ui": preview, "result": result[0]}
+        
+        # Extract the image tensor from the result
+        if isinstance(result, dict) and "result" in result:
+            image_tensor = result["result"][0]
+        else:
+            image_tensor = result[0]
+            
+        return {"ui": preview, "result": (image_tensor,)}
 
 class FSSaveVideo:
     @classmethod
