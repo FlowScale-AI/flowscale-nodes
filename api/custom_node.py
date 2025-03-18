@@ -181,3 +181,10 @@ async def uninstall_node(request):
     except Exception as e:
         logger.error(f"Error uninstalling repository: {str(e)}")
         return web.json_response({"error": "Failed to uninstall repository", "details": str(e)}, status=500)
+
+from .io import routes as io_routes
+
+def register_routes():
+    # Add all routes
+    for route in io_routes:
+        PromptServer.instance.app.router.add_route(route.method, route.path, route.handler)

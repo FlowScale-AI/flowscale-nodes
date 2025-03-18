@@ -471,3 +471,34 @@ def is_file_ready(file_path, max_delay=15):
             return False
     
     return True
+
+from aiohttp import web
+import folder_paths
+import os
+
+async def upload_video(request):
+    try:
+        data = await request.post()
+        video = data['video']
+
+        # Get filename and ensure it's safe
+        filename = video.filename.lower()
+        if not any(filename.endswith(ext) for ext in ['.mp4', '.avi', '.mov', '.webm', '.mkv', '.gif']):
+            return web.Response(status=400, text="Invalid video format")
+
+        # Save to input directory
+        input_dir = folder_paths.get_input_directory()
+        filepath = os.path.join(input_dir, filename)
+
+        # Write the file
+        with open(filepath, 'wb') as f:
+            f.write(video.file.read())
+
+        return web.Response(status=200)
+    except Exception as e:
+        return web.Response(status=500, text=str(e))
+
+# Register route
+routes = [
+    web.post("/upload/video", upload_video)
+]

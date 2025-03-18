@@ -41,11 +41,20 @@ class FSLoadVideo:
                 "auto_resize_high_res": ("BOOLEAN", {"default": True}),
             }
         }
+
     RETURN_TYPES = ("IMAGE", "INT", "INT", "INT")
     RETURN_NAMES = ("frames", "frame_count", "width", "height")
     FUNCTION = "load_video"
     CATEGORY = "IO"
-    
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")  # Always reload video
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        return True
+
     def load_video(self, video="", video_url="", start_frame=0, max_frames=64, skip_frames=0, 
                    resize_to_width=512, resize_to_height=0, batch_size=4, auto_resize_high_res=True):
         try:
@@ -285,6 +294,16 @@ class FSLoadVideo:
             error_img = np.ones((1, 64, 64, 3), dtype=np.float32)
             error_img[..., 1:] = 0  # Set green and blue channels to 0 (making it red)
             return (error_img, 0, 64, 64)
+
+    # Register web module
+    WEB_DIRECTORY = "web"
+
+    @classmethod
+    def get_web_files(cls):
+        web_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), cls.WEB_DIRECTORY)
+        if os.path.exists(web_dir):
+            return [(os.path.join(web_dir, "js"), "js/flowscale.core.js")]
+        return []
 
 class FSLoadVideoPath:
     @classmethod
