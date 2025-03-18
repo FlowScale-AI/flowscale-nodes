@@ -82,14 +82,14 @@ class FSLoadAudio:
             }
             
             print(f"I/O Label: {label}")
-            return {"ui": preview, "result": (audio_data,)}
+            return {"result": (audio_data,)}
 
         except Exception as e:
             print(f"Error loading audio: {e}")
             # Return empty audio dict on error
             empty_waveform = torch.zeros((1, 1), dtype=torch.float32)
             empty_audio = {"waveform": empty_waveform.unsqueeze(0), "sample_rate": 44100}
-            return {"ui": {"error": str(e)}, "result": (empty_audio,)}
+            return {"result": (empty_audio,)}
 
     @classmethod
     def IS_CHANGED(s, audio, **kwargs):
