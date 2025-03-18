@@ -19,7 +19,7 @@ class FileLoaderNode:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "load_file"
-    CATEGORY = "Utility"
+    CATEGORY = "FlowScale/Utilities"
 
     def load_file(self, file_url, silent_errors=True):
         """

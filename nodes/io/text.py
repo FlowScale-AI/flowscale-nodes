@@ -18,7 +18,7 @@ class FSLoadText:
 
     FUNCTION = "run"
 
-    CATEGORY = "IO"
+    CATEGORY = "FlowScale/IO"
 
     def run(self, default_value=None):
         return [default_value]
@@ -36,7 +36,7 @@ class FSSaveText:
 
     FUNCTION = "save_text"
 
-    CATEGORY = "IO"
+    CATEGORY = "FlowScale/IO"
 
     OUTPUT_NODE = True
     RETURN_TYPES = ()

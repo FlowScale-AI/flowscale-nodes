@@ -27,7 +27,7 @@ class FSLoadImage:
 
     FUNCTION = "load_image"
 
-    CATEGORY = "IO"
+    CATEGORY = "FlowScale/IO"
 
     def load_image(self, image, image_url=""):
         try:
@@ -99,7 +99,7 @@ class FSSaveImage:
     
     FUNCTION = "save_image"
     
-    CATEGORY = "IO"
+    CATEGORY = "FlowScale/IO"
     OUTPUT_NODE = True
     
     def save_image(self, images, filename_prefix, format="png", quality=100, lossless=False):

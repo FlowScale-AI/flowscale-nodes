@@ -22,7 +22,7 @@ class ExtractPropertyNode:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "extract_property"
-    CATEGORY = "Utility"
+    CATEGORY = "FlowScale/Utilities"
 
     def extract_property(self, json_data, property_key, silent_errors=True):
         """

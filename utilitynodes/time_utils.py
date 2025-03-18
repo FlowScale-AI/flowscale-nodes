@@ -27,7 +27,7 @@ class Delay:
   RETURN_TYPES = ("*", )
   RETURN_NAMES = ("delayed_response", )
   FUNCTION = "delay"
-  CATEGORY = "Utilities"
+  CATEGORY = "FlowScale/Utilities"
   
   def delay(self, delay: int):
     time.sleep(delay)

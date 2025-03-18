@@ -107,6 +107,41 @@ class FSLoadVideo:
         if not folder_paths.exists_annotated_filepath(video):
             return "Invalid video file: {}".format(video)
         return True
+    
+class FSLoadVideoFromURL:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "video_url": ("STRING",),
+                "skip_first_frames": ("INT", {"default": 0, "min": 0, "max": 10000}),
+                "select_every_nth": ("INT", {"default": 1, "min": 1, "max": 100}),
+            },
+            "hidden": {
+                "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
+            }
+        }
+    CATEGORY = "FlowScale/IO"
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("IMAGES",)
+    FUNCTION = "load_video_from_url"
+    def load_video_from_url(self, video_url, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None):
+        # Check if the URL is valid
+        if not re.match(r'^(http|https)://', video_url):
+            raise ValueError("Invalid URL format. Please provide a valid HTTP or HTTPS URL.")
+        
+        # Download the video file
+        response = requests.get(video_url)
+        if response.status_code != 200:
+            raise ValueError(f"Failed to download video from URL: {video_url}")
+        
+        # Save the video to a temporary file
+        temp_video_path = os.path.join(tempfile.gettempdir(), "temp_video.mp4")
+        with open(temp_video_path, 'wb') as f:
+            f.write(response.content)
+        
+        # Load the video using OpenCV
+        return FSLoadVideo().load_video(temp_video_path, skip_first_frames, select_every_nth, prompt, extra_pnginfo)
 
 class FSSaveVideo:
     @classmethod
@@ -129,7 +164,7 @@ class FSSaveVideo:
     
     FUNCTION = "save_video"
     
-    CATEGORY = "IO"
+    CATEGORY = "FlowScale/IO"
     OUTPUT_NODE = True
     
     def save_video(self, images, filename_prefix="FlowScale_", fps=24.0, format="mp4", quality=95, audio_path="", use_ffmpeg=True):

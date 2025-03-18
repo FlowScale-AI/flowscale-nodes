@@ -24,7 +24,7 @@ class GitHubReadmeExtractor:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "extract_readme"
-    CATEGORY = "Utility"
+    CATEGORY = "FlowScale/Utility"
 
     def extract_readme(self, github_url, branch="main", silent_errors=True):
         """

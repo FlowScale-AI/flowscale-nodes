@@ -35,7 +35,7 @@ class UploadModelToS3:
   RETURN_TYPES = ("STRING", "STRING")
   RETURN_NAMES = ("download_url", "model_name")
   FUNCTION = "upload_model_to_s3"
-  CATEGORY = "Utilities"
+  CATEGORY = "FlowScale/Utilities"
   
   def upload_model_to_s3(self, filepath, model_name=None):
     CONTAINER_ID = os.environ.get("CONTAINER_ID")
@@ -101,7 +101,7 @@ class UploadModelToPublicS3:
   RETURN_TYPES = ("STRING", "STRING")
   RETURN_NAMES = ("download_url", "model_name")
   FUNCTION = "upload_model_to_s3"
-  CATEGORY = "Utilities"
+  CATEGORY = "FlowScale/Utilities"
   OUTPUT_NODE = True
   
   def upload_model_to_s3(self, filepath, model_name=None, file=None):
@@ -178,7 +178,7 @@ class UploadModelToPrivateS3:
     RETURN_TYPES = ("STRING", )
     RETURN_NAMES = ("s3_key", )
     FUNCTION = "upload_model_to_s3"
-    CATEGORY = "Utilities"
+    CATEGORY = "FlowScale/Utilities"
     OUTPUT_NODE = True
 
     def upload_model_to_s3(self, filepath, model_name=None, file=None):
@@ -249,7 +249,7 @@ class LoadModelFromPublicS3:
     RETURN_TYPES = ("STRING", )
     RETURN_NAMES = ("save_path", )
     FUNCTION = "load_model_from_s3"
-    CATEGORY = "Utilities"
+    CATEGORY = "FlowScale/Utilities"
 
     def load_model_from_s3(self, download_url, save_path):
         try:
@@ -346,7 +346,7 @@ class UploadImageToS3:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("s3_url", "s3_key")
     FUNCTION = "upload_images_to_s3"
-    CATEGORY = "Utilities"
+    CATEGORY = "FlowScale/Utilities"
     OUTPUT_NODE = True
   
     def upload_images_to_s3(self, images, filename_prefix="ComfyUI_", user_id="flowscale_user", identifier="default"):
@@ -454,7 +454,7 @@ class UploadMediaToS3FromLink:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("s3_url", "s3_key")
     FUNCTION = "upload_media_to_s3"
-    CATEGORY = "Utilities"
+    CATEGORY = "FlowScale/Utilities"
     OUTPUT_NODE = True
 
     def upload_media_to_s3(self, link, filename_prefix="default", user_id="flowscale_user", identifier="default"):
@@ -592,7 +592,7 @@ class UploadTextToS3:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("s3_url", "s3_key")
     FUNCTION = "upload_text_to_s3"
-    CATEGORY = "S3"
+    CATEGORY = "FlowScale/Utilities"
     OUTPUT_NODE = True
 
     def upload_text_to_s3(self, text, filename_prefix="ComfyUI_Text_", user_id="flowscale_user", identifier="default"):

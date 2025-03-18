@@ -26,7 +26,7 @@ class WebhookSender:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "send_to_webhook"
-    CATEGORY = "Custom/Webhook"
+    CATEGORY = "FlowScale/Webhook"
 
     def send_to_webhook(self, webhook_url, property_name_1, property_value_1, property_name_2=None, property_value_2=None, property_name_3=None, property_value_3=None, property_name_4=None, property_value_4=None, context=None):
         try:
