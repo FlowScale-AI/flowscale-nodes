@@ -1,6 +1,13 @@
 import { app } from '../../../scripts/app.js'
 import { api } from '../../../scripts/api.js'
 
+// Load the Flowscale CSS
+const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.type = 'text/css';
+link.href = 'extensions/flowscale-nodes/web/css/emoji.css';
+document.head.appendChild(link);
+
 async function uploadVideo(file) {
     try {
         // Wrap file in formdata so it includes filename
