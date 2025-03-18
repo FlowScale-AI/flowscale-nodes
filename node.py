@@ -8,6 +8,7 @@ from .nodes.io.audio import FSLoadAudio, FSSaveAudio, FSProcessAudio, FSCombineA
 from .utilitynodes.webhook import WebhookSender
 from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
+from .utilitynodes.multifileloader import MultiFileLoaderNode
 from .utilitynodes.json_extractor import ExtractPropertyNode
 from .constants import FS_NODE_ICON
 
@@ -24,6 +25,7 @@ NODE_CLASS_MAPPINGS = {
   "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
   "WebhookSender": WebhookSender,
   "FileLoaderNode": FileLoaderNode,
+  "MultiFileLoaderNode": MultiFileLoaderNode,
   "ExtractPropertyNode": ExtractPropertyNode,
   "FSLoadText": FSLoadText,
   "FSSaveText": FSSaveText,
@@ -53,6 +55,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "GithubReadmeExtractor": f"[FS]{FS_NODE_ICON}Extract GitHub Readme",
     "WebhookSender": f"[FS]{FS_NODE_ICON}Send to Webhook",
     "FileLoaderNode": f"[FS]{FS_NODE_ICON}Load File",
+    "MultiFileLoaderNode": f"[FS]{FS_NODE_ICON}Multi-File Uploader",
     "ExtractPropertyNode": f"[FS]{FS_NODE_ICON}Extract Property from JSON",
     "FSLoadText": f"[FS]{FS_NODE_ICON}Load Text (Input)",
     "FSSaveText": f"[FS]{FS_NODE_ICON}Save Text (Output)",
