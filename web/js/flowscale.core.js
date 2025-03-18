@@ -181,9 +181,7 @@ app.registerExtension({
         }
         
         // Add video preview to video nodes
-        if (nodeData.name === "FSLoadVideo" || 
-            nodeData.name === "FSLoadVideoFromURL" || 
-            nodeData.name === "FSSaveVideo") {
+        if (nodeData.name === "FSLoadVideo") {
             addVideoUploadFeature(nodeType, nodeData);
         }
     }
