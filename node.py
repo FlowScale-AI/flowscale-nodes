@@ -8,6 +8,7 @@ from .utilitynodes.webhook import WebhookSender
 from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
 from .utilitynodes.json_extractor import ExtractPropertyNode
+from .constants import FS_NODE_ICON
 
 NODE_CLASS_MAPPINGS = { 
   "UploadModelToS3": UploadModelToS3,
@@ -34,25 +35,25 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-  "UploadModelToS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Upload Model to S3",
-  "UploadImageToS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Upload Image to S3",
-  "UploadMediaToS3FromLink": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Upload Media to S3 from Link",
-  "UploadTextToS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Upload Text to S3",
-  "UploadModelToPublicS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Upload Model to Public S3",
-  "UploadModelToPrivateS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Upload Model to Private S3",
-  "LoadModelFromPublicS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Model from Public S3",
-  "LoadModelFromPrivateS3": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Model to Private S3",
-  "LoadModelFromCivitAI": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Model from CivitAI",
-  "SaveModelToFlowscaleVolume": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Save Model to Flowscale Volume",
-  "GithubReadmeExtractor": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Extract GitHub Readme",
-  "WebhookSender": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Send to Webhook",
-  "FileLoaderNode": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load File",
-  "ExtractPropertyNode": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Extract Property from JSON",
-  "FSLoadText": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Text (Input)",
-  "FSSaveText": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Save Text (Output)",
-  "FSLoadImage": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Image (Input)",
-  "FSSaveImage": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Save Image (Output)",
-  "FSLoadVideo": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Video (Input)",
-  "FSLoadVideoFromURL": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Load Video from URL (Input)",
-  "FSSaveVideo": "[FS] <img src='https://hub-beta.flowscale.ai/logo.svg' width='16' height='16' style='vertical-align: middle'> Save Video (Output)",
+    "UploadModelToS3": f"[FS]{FS_NODE_ICON}Upload Model to S3",
+    "UploadImageToS3": f"[FS]{FS_NODE_ICON}Upload Image to S3",
+    "UploadMediaToS3FromLink": f"[FS]{FS_NODE_ICON}Upload Media to S3 from Link",
+    "UploadTextToS3": f"[FS]{FS_NODE_ICON}Upload Text to S3",
+    "UploadModelToPublicS3": f"[FS]{FS_NODE_ICON}Upload Model to Public S3",
+    "UploadModelToPrivateS3": f"[FS]{FS_NODE_ICON}Upload Model to Private S3",
+    "LoadModelFromPublicS3": f"[FS]{FS_NODE_ICON}Load Model from Public S3",
+    "LoadModelFromPrivateS3": f"[FS]{FS_NODE_ICON}Load Model to Private S3",
+    "LoadModelFromCivitAI": f"[FS]{FS_NODE_ICON}Load Model from CivitAI",
+    "SaveModelToFlowscaleVolume": f"[FS]{FS_NODE_ICON}Save Model to Flowscale Volume",
+    "GithubReadmeExtractor": f"[FS]{FS_NODE_ICON}Extract GitHub Readme",
+    "WebhookSender": f"[FS]{FS_NODE_ICON}Send to Webhook",
+    "FileLoaderNode": f"[FS]{FS_NODE_ICON}Load File",
+    "ExtractPropertyNode": f"[FS]{FS_NODE_ICON}Extract Property from JSON",
+    "FSLoadText": f"[FS]{FS_NODE_ICON}Load Text (Input)",
+    "FSSaveText": f"[FS]{FS_NODE_ICON}Save Text (Output)",
+    "FSLoadImage": f"[FS]{FS_NODE_ICON}Load Image (Input)",
+    "FSSaveImage": f"[FS]{FS_NODE_ICON}Save Image (Output)",
+    "FSLoadVideo": f"[FS]{FS_NODE_ICON}Load Video (Input)",
+    "FSLoadVideoFromURL": f"[FS]{FS_NODE_ICON}Load Video from URL (Input)",
+    "FSSaveVideo": f"[FS]{FS_NODE_ICON}Save Video (Output)",
 }
