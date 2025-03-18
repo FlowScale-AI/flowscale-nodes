@@ -1,41 +1,6 @@
 import { app } from '../../../scripts/app.js'
 import { api } from '../../../scripts/api.js'
 
-// Load the Flowscale CSS
-const link = document.createElement('link');
-link.rel = 'stylesheet';
-link.type = 'text/css';
-link.href = 'extensions/flowscale-nodes/web/css/emoji.css';
-document.head.appendChild(link);
-
-// Override node title handling
-function setupFlowscaleNode(node, nodeData) {
-    const origGetTitle = node.constructor.prototype.getTitle;
-    node.constructor.prototype.getTitle = function() {
-        const title = origGetTitle.call(this);
-        if (title && title.includes('flowscale-icon')) {
-            const container = document.createElement('div');
-            container.style.display = 'flex';
-            container.style.alignItems = 'center';
-            container.style.justifyContent = 'center';
-            container.style.gap = '4px';
-            
-            const icon = document.createElement('span');
-            icon.className = 'flowscale-icon';
-            
-            // Extract plain text title
-            const temp = document.createElement('div');
-            temp.innerHTML = title;
-            const plainText = document.createTextNode(temp.textContent || temp.innerText);
-            
-            container.appendChild(icon);
-            container.appendChild(plainText);
-            return container;
-        }
-        return title;
-    };
-}
-
 async function uploadVideo(file) {
     try {
         // Wrap file in formdata so it includes filename
@@ -131,12 +96,6 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         console.log("Registering node type:", nodeType);
         console.log("Node data:", nodeData);
-        
-        // Apply Flowscale styling to all nodes that have our icon
-        if (nodeData.name && nodeData.name.startsWith("FS")) {
-            setupFlowscaleNode(nodeType, nodeData);
-        }
-        
         if (nodeData.name === "FSLoadVideo") {
             addVideoUploadFeature(nodeType, nodeData);
         }
