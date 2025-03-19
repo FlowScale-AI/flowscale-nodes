@@ -11,6 +11,7 @@ from .utilitynodes.fileloader import FileLoaderNode
 from .utilitynodes.multifileloader import MultiFileLoaderNode
 from .utilitynodes.file_extractor import FileExtractorNode
 from .utilitynodes.json_extractor import ExtractPropertyNode
+from .utilitynodes.time_utils import FSDelay
 from .constants import FS_NODE_ICON
 
 NODE_CLASS_MAPPINGS = { 
@@ -43,6 +44,7 @@ NODE_CLASS_MAPPINGS = {
   "FSProcessAudio": FSProcessAudio,
   "FSCombineAudio": FSCombineAudio,
   "GithubReadmeExtractor": GitHubReadmeExtractor,
+  "FSDelay": FSDelay,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -75,4 +77,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FSSaveAudio": f"[FS]{FS_NODE_ICON}Save Audio (Output)",
     "FSProcessAudio": f"[FS]{FS_NODE_ICON}Process Audio",
     "FSCombineAudio": f"[FS]{FS_NODE_ICON}Combine Audio",
+    "FSDelay": f"[FS]{FS_NODE_ICON}Delay",
 }

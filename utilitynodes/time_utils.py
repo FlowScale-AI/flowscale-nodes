@@ -4,7 +4,7 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class Delay:
+class FSDelay:
     """
     Simulate network delay while passing through the input data
     """
@@ -26,6 +26,7 @@ class Delay:
     
     RETURN_TYPES = ("*",)
     RETURN_NAMES = ("delayed_response",)
+    EXPERIMENTAL = True
     FUNCTION = "delay"
     CATEGORY = "FlowScale/Utils/Time"
     
@@ -33,4 +34,4 @@ class Delay:
         logger.info(f"Delaying for {delay} seconds...")
         time.sleep(delay)
         # Return the trigger input as-is after the delay
-        return (trigger,)
+        return (trigger,) if trigger is not None else None
