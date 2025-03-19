@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowscale-nodes"
+version = "0.3.15"
+description = "FlowScale Nodes for ComfyUI - Enhanced media handling and utility nodes"
+readme = "README.md"
+authors = [
+    { name = "w3rc" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "aiofiles",
+    "aiohttp",
+    "boto3",
+    "httpx",
+    "python-dotenv",
+    "GitPython",
+    "botocore",
+    "pillow>=10.1.0",
+    "pillow-avif-plugin>=1.5.0",
+    "pillow-heif>=0.22.0",
+    "numpy",
+    "PyPDF2",
+    "opencv-python",
+    "soundfile",
+    "mutagen",
+]
+
+[project.urls]
+Homepage = "https://github.com/flowscale-ai/flowscale-nodes"
+Documentation = "https://github.com/flowscale-ai/flowscale-nodes/blob/main/README.md"
+
+[tool.setuptools]
+packages = ["flowscale_nodes"]
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
