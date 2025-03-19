@@ -15,6 +15,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 mimetypes.add_type('image/webp', '.webp')
+mimetypes.add_type('audio/mp3', '.mp3')
+mimetypes.add_type('audio/wav', '.wav')
 
 @PromptServer.instance.routes.post("/flowscale/io/upload")
 async def upload_media(request):
@@ -39,16 +41,17 @@ async def upload_media(request):
         # Define allowed extensions
         allowed_image_exts = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
         allowed_video_exts = ['.mp4', '.webm', '.mkv', '.mov', '.avi']
+        allowed_audio_exts = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
         
         # Check if extension is allowed
-        if ext not in allowed_image_exts + allowed_video_exts:
+        if ext not in allowed_image_exts + allowed_video_exts + allowed_audio_exts:
             return web.json_response(
-                {'error': 'Invalid file type. Only images and videos are allowed.'}, 
+                {'error': 'Invalid file type. Only images, videos, and audio files are allowed.'}, 
                 status=400, 
                 headers=headers
             )
 
-        # Determine target directory (input for both images and videos)
+        # Determine target directory (input for all media types)
         media_directory = os.path.join(os.getcwd(), "input")
         os.makedirs(media_directory, exist_ok=True)
 
@@ -63,11 +66,18 @@ async def upload_media(request):
                 size += len(chunk)
                 await f.write(chunk)
 
+        # Determine the file type for the response
+        file_type = 'image'
+        if ext in allowed_video_exts:
+            file_type = 'video'
+        elif ext in allowed_audio_exts:
+            file_type = 'audio'
+
         return web.json_response({
             'message': 'File uploaded successfully.',
             'filename': filename,
             'size': size,
-            'type': 'video' if ext in allowed_video_exts else 'image'
+            'type': file_type
         }, headers=headers)
 
     except Exception as e:
