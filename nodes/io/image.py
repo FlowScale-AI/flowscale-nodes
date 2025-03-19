@@ -8,11 +8,11 @@ import folder_paths
 import requests
 from io import BytesIO
 from pillow_heif import register_heif_opener
-from pillow_avif import register_avif_opener
+import pillow_avif
 
-# Register HEIF and AVIF support
+# Register HEIF support
 register_heif_opener()
-register_avif_opener()
+_ = pillow_avif
 
 class FSLoadImage:
     @classmethod
