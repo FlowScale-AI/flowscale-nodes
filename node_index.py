@@ -2,9 +2,9 @@ from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelT
 from .nodes.model_utils import LoadModelFromCivitAI
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
 from .nodes.io.text import FSLoadText, FSSaveText
-from .nodes.io.image import FSLoadImage, FSSaveImage
+from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
 from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
-from .nodes.io.audio import FSLoadAudio, FSSaveAudio, FSProcessAudio, FSCombineAudio
+from .nodes.io.audio import FSLoadAudio, FSLoadAudioFromURL, FSSaveAudio, FSProcessAudio, FSCombineAudio
 from .utilitynodes.webhook import WebhookSender
 from .nodes.github_readme_extractor import GitHubReadmeExtractor
 from .utilitynodes.fileloader import FileLoaderNode
@@ -32,11 +32,13 @@ NODE_CLASS_MAPPINGS = {
   "FSLoadText": FSLoadText,
   "FSSaveText": FSSaveText,
   "FSLoadImage": FSLoadImage,
+  "FSLoadImageFromURL": FSLoadImageFromURL,
   "FSSaveImage": FSSaveImage,
   "FSLoadVideo": FSLoadVideo,
   "FSLoadVideoFromURL": FSLoadVideoFromURL,
   "FSSaveVideo": FSSaveVideo,
   "FSLoadAudio": FSLoadAudio,
+  "FSLoadAudioFromURL": FSLoadAudioFromURL,
   "FSSaveAudio": FSSaveAudio,
   "FSProcessAudio": FSProcessAudio,
   "FSCombineAudio": FSCombineAudio,
@@ -63,11 +65,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FSLoadText": f"[FS]{FS_NODE_ICON}Load Text (Input)",
     "FSSaveText": f"[FS]{FS_NODE_ICON}Save Text (Output)",
     "FSLoadImage": f"[FS]{FS_NODE_ICON}Load Image (Input)",
+    "FSLoadImageFromURL": f"[FS]{FS_NODE_ICON}Load Image from URL (Input)",
     "FSSaveImage": f"[FS]{FS_NODE_ICON}Save Image (Output)",
     "FSLoadVideo": f"[FS]{FS_NODE_ICON}Load Video (Input)",
     "FSLoadVideoFromURL": f"[FS]{FS_NODE_ICON}Load Video from URL (Input)",
     "FSSaveVideo": f"[FS]{FS_NODE_ICON}Save Video (Output)",
     "FSLoadAudio": f"[FS]{FS_NODE_ICON}Load Audio (Input)",
+    "FSLoadAudioFromURL": f"[FS]{FS_NODE_ICON}Load Audio from URL (Input)",
     "FSSaveAudio": f"[FS]{FS_NODE_ICON}Save Audio (Output)",
     "FSProcessAudio": f"[FS]{FS_NODE_ICON}Process Audio",
     "FSCombineAudio": f"[FS]{FS_NODE_ICON}Combine Audio",

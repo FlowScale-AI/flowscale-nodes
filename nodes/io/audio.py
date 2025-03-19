@@ -1,7 +1,5 @@
 import os
 import random
-import string
-import numpy as np
 import torch
 import torchaudio
 import folder_paths
@@ -10,7 +8,6 @@ import tempfile
 import hashlib
 import io
 import json
-from io import BytesIO
 
 AUDIO_EXTENSIONS = ['.wav', '.mp3', '.ogg', '.flac', '.m4a', '.aac']
 
@@ -25,7 +22,6 @@ class FSLoadAudio:
             },
             "optional": {
                 "label": ("STRING", {"default": "Input Audio"}),
-                "audio_url": ("STRING", {"default": ""}),
             }
         }
 
@@ -34,32 +30,15 @@ class FSLoadAudio:
     FUNCTION = "load_audio"
     CATEGORY = "FlowScale/IO"
 
-    def load_audio(self, audio, audio_url="", label="Input Audio"):
+    def load_audio(self, audio, label="Input Audio"):
         try:
-            # If audio_url is provided, load from URL
-            if (audio_url):
-                try:
-                    response = requests.get(audio_url)
-                    response.raise_for_status()
-                    with tempfile.NamedTemporaryFile(suffix=os.path.splitext(audio_url)[1], delete=False) as temp_file:
-                        temp_file.write(response.content)
-                        temp_file_path = temp_file.name
-                        
-                    # Use torchaudio to load audio
-                    waveform, sample_rate = torchaudio.load(temp_file_path)
-                    os.unlink(temp_file_path)  # Delete the temporary file
-                except Exception as e:
-                    print(f"Error loading audio from URL: {e}")
-                    raise
-            else:
-                # Get annotated filepath
-                audio_path = folder_paths.get_annotated_filepath(audio)
+            audio_path = folder_paths.get_annotated_filepath(audio)
+            
+            if not os.path.exists(audio_path):
+                raise FileNotFoundError(f"Audio file not found at path: {audio_path}")
                 
-                if not os.path.exists(audio_path):
-                    raise FileNotFoundError(f"Audio file not found at path: {audio_path}")
-                    
-                # Use torchaudio to load audio
-                waveform, sample_rate = torchaudio.load(audio_path)
+            # Use torchaudio to load audio
+            waveform, sample_rate = torchaudio.load(audio_path)
 
             # Create audio dictionary in the expected format
             audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
@@ -68,12 +47,12 @@ class FSLoadAudio:
             preview = {
                 "ui": {
                     "audio": [{
-                        "filename": os.path.basename(audio_path if not audio_url else audio_url),
+                        "filename": os.path.basename(audio_path),
                         "type": "input",
                         "sample_rate": sample_rate,
                         "channels": waveform.shape[0],
                         "duration": waveform.shape[1] / sample_rate,
-                        "url": f"file={audio_path}" if not audio_url else audio_url
+                        "url": f"file={audio_path}"
                     }]
                 }
             }
@@ -101,6 +80,58 @@ class FSLoadAudio:
         if not folder_paths.exists_annotated_filepath(audio):
             return "Invalid audio file: {}".format(audio)
         return True
+    
+class FSLoadAudioFromURL:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_url": ("STRING", {"default": ""}),
+            },
+            "optional": {
+                "label": ("STRING", {"default": "Input Audio"}),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("audio",)
+    FUNCTION = "load_audio_from_url"
+    CATEGORY = "FlowScale/IO"
+
+    def load_audio_from_url(self, audio_url="", label="Input Audio"):
+        try:
+            response = requests.get(audio_url)
+            response.raise_for_status()
+            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(audio_url)[1], delete=False) as temp_file:
+                temp_file.write(response.content)
+                temp_file_path = temp_file.name
+                
+            # Use torchaudio to load audio
+            waveform, sample_rate = torchaudio.load(temp_file_path)
+            os.unlink(temp_file_path)  # Delete the temporary file
+
+            # Create audio dictionary in the expected format
+            audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
+            
+            # Create preview information for the UI
+            preview = {
+                "ui": {
+                    "audio": [{
+                        "filename": os.path.basename(audio_url),
+                        "type": "input",
+                        "sample_rate": sample_rate,
+                        "channels": waveform.shape[0],
+                        "duration": waveform.shape[1] / sample_rate,
+                        "url": audio_url
+                    }]
+                }
+            }
+            
+            print(f"I/O Label: {label}")
+            return {"ui": preview, "result": (audio_data,)}
+
+        except Exception as e:
+            raise(f"Error loading audio from URL: {e}")
 
 def insert_or_replace_vorbis_comment(file_buff, metadata_dict):
     """

@@ -19,7 +19,6 @@ class FSLoadImage:
             },
             "optional": {
                 "label": ("STRING", {"default": "Input Image"}),
-                "image_url": ("STRING", {"default": ""}),
             }
         }
 
@@ -30,37 +29,25 @@ class FSLoadImage:
 
     CATEGORY = "FlowScale/IO"
 
-    def load_image(self, image, image_url="", label="Input Image"):
+    def load_image(self, image, label="Input Image"):
         try:
-            # If image_url is provided, load from URL
-            if image_url:
-                try:
-                    response = requests.get(image_url)
-                    response.raise_for_status()
-                    img = Image.open(BytesIO(response.content))
-                    path = f"URL: {image_url}"
-                except Exception as e:
-                    print(f"Error loading image from URL: {e}")
-                    raise
+            if os.path.isabs(image):
+                path = image
             else:
-                # If path is absolute, use it directly
-                if os.path.isabs(image):
-                    path = image
-                else:
-                    # Otherwise, check in the input directory
-                    input_dir = folder_paths.get_input_directory()
-                    path = os.path.join(input_dir, image)
-                    
-                    # If not found in input directory, try absolute from cwd
-                    if not os.path.exists(path):
-                        path = os.path.join(os.getcwd(), image)
+                # Otherwise, check in the input directory
+                input_dir = folder_paths.get_input_directory()
+                path = os.path.join(input_dir, image)
                 
+                # If not found in input directory, try absolute from cwd
                 if not os.path.exists(path):
-                    raise FileNotFoundError(f"Image not found at path: {path}")
-                    
-                # Load the image with PIL
-                img = Image.open(path)
+                    path = os.path.join(os.getcwd(), image)
+            
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"Image not found at path: {path}")
                 
+            # Load the image with PIL
+            img = Image.open(path)
+            
             # Convert to RGB if needed
             if img.mode != "RGB":
                 img = img.convert("RGB")
@@ -74,12 +61,35 @@ class FSLoadImage:
             print(f"I/O Label: {label}")
             return (img_tensor,)
         except Exception as e:
-            print(f"Error loading image: {e}")
-            # Return a small red placeholder image on error 
-            error_img = np.ones((1, 64, 64, 3), dtype=np.float32)
-            error_img[..., 1:] = 0  # Set green and blue channels to 0 (making it red)
-            return (error_img,)
+            raise ValueError(f"Error loading image: {e}")
 
+class FSLoadImageFromURL:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image_url": ("STRING", {"default": ""}),
+            },
+            "optional": {
+                "label": ("STRING", {"default": "Input Image"}),
+            }
+        }
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "load_image_from_url"
+    CATEGORY = "FlowScale/IO"
+    def load_image_from_url(self, image_url, label="Input Image"):
+        try:
+            response = requests.get(image_url)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content))
+            img = img.convert("RGB")
+            img_np = np.array(img).astype(np.float32) / 255.0
+            img_tensor = img_np[np.newaxis, ...]
+            print(f"I/O Label: {label}")
+            return (img_tensor,)
+        except Exception as e:
+            raise ValueError(f"Error loading image from URL: {e}")
 
 class FSSaveImage:
     @classmethod
