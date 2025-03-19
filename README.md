@@ -6,11 +6,12 @@ FlowScale Nodes is a collection of custom nodes for [ComfyUI](https://github.com
 
 ## Features
 
-- ⚡ IO Nodes: Easy loading and saving of images, videos, audio, and texts
+- ⚡ IO Nodes: Easy loading and saving of text, images, videos, audio, and  files
 - 🔄 Cloud Integration: Upload and download models, images, videos, and text to AWS S3
 - 📦 Utilities: Extract files, process JSON, send webhooks
 - 🤖 Model Management: Load models from CivitAI and save to volumes
 - 🎞️ Media Preview: Live previews for images, videos, and audio files
+- 📝 Text Processing: Load, save, and process text content
 - 🧰 Multi-file handling: Batch upload multiple files together
 
 ## Enhanced FlowScale Integration
@@ -55,65 +56,89 @@ You can either set these in your environment in Project Settings within a projec
 
 ## Node Categories
 
-### FlowScale/IO
+### FlowScale/Media
 
-Nodes for working with various media types:
+Media handling nodes for various file types:
 
-#### Image Nodes
-
+#### Image
 - **FSLoadImage**: Load an image from your filesystem
 - **FSLoadImageFromURL**: Load an image from a URL
 - **FSSaveImage**: Save an image to your filesystem with format options
 
-#### Video Nodes
-
+#### Video
 - **FSLoadVideo**: Load a video file from your filesystem
 - **FSLoadVideoFromURL**: Load a video from a URL
 - **FSSaveVideo**: Save a video to your filesystem
 
-#### Audio Nodes
-
+#### Audio
 - **FSLoadAudio**: Load an audio file from your filesystem
 - **FSLoadAudioFromURL**: Load audio from a URL
 - **FSSaveAudio**: Save audio to your filesystem
 - **FSProcessAudio**: Process audio files with various operations
 - **FSCombineAudio**: Combine multiple audio files together
 
-#### Text Nodes
-
+#### Text
 - **FSLoadText**: Load text content from a file
 - **FSSaveText**: Save text content to a file
 
-### FlowScale/Utilities
+### FlowScale/Cloud
 
-General utility nodes:
+Cloud storage and integration nodes:
 
-- **FileLoaderNode**: Load individual or zipped text files
-- **MultiFileLoaderNode**: Load multiple files at once with metadata extraction and filtering
-- **FileExtractorNode**: Extract files from archives
-- **ExtractPropertyNode**: Extract specific properties from JSON data
-- **WebhookSender**: Send data to webhook endpoints
-- **GithubReadmeExtractor**: Extract README content from GitHub repositories
-
-### FlowScale/S3 Integration
-
-Nodes for working with AWS S3:
-
+#### Models
 - **UploadModelToS3**: Upload a model file to S3
-- **UploadImageToS3**: Upload images to S3
-- **UploadMediaToS3FromLink**: Upload media from a URL to S3
-- **UploadTextToS3**: Upload text content to S3
 - **UploadModelToPublicS3**: Upload a model to a public S3 bucket
 - **UploadModelToPrivateS3**: Upload a model to a private S3 bucket
 - **LoadModelFromPublicS3**: Load a model from a public S3 URL
 - **LoadModelFromPrivateS3**: Load a model from a private S3 key
 
-### FlowScale/Model Management
+#### Media
+- **UploadImageToS3**: Upload images to S3
+- **UploadMediaToS3FromLink**: Upload media from a URL to S3
+- **UploadTextToS3**: Upload text content to S3
 
-Nodes for managing AI models:
+### FlowScale/Files
 
+File handling and processing nodes:
+
+#### Load
+- **FileLoaderNode**: Load individual or zipped text files
+
+#### Batch
+- **MultiFileLoaderNode**: Load multiple files at once with metadata extraction and filtering
+
+#### Extract
+- **FileExtractorNode**: Extract files from archives
+
+#### Parse
+- **ExtractPropertyNode**: Extract specific properties from JSON data
+
+### FlowScale/Models
+
+Model management nodes:
+
+#### Download
 - **LoadModelFromCivitAI**: Load models directly from CivitAI
+
+#### Storage
 - **SaveModelToFlowscaleVolume**: Save models to a volume with metadata for persistent storage
+
+### FlowScale/Web
+
+Web integration nodes:
+
+#### GitHub
+- **GithubReadmeExtractor**: Extract README content from GitHub repositories
+
+#### Webhooks
+- **WebhookSender**: Send data to webhook endpoints
+
+### FlowScale/Utils
+
+General utility nodes:
+
+#### Time
+- **Delay**: Add configurable delays to workflows
 
 ## Usage Examples
 
