@@ -14,6 +14,20 @@ FlowScale Nodes is a collection of custom nodes for [ComfyUI](https://github.com
 - 📝 Text Processing: Load, save, and process text content
 - 🧰 Multi-file handling: Batch upload multiple files together
 
+## Image Format Support! 🎨
+
+We support modern, high-quality image formats, other than just jpg, jpeg, png and webp:
+
+### AVIF Format
+- ✨ Better quality than JPEG at smaller file sizes
+- 🚀 Perfect for web and storage
+- 💾 Save up to 50% storage space
+
+### HEIF Format
+- 📱 Used by modern phones and devices
+- 🖼️ High quality at small sizes
+- 🎯 Great for photos and artwork
+
 ## Enhanced FlowScale Integration
 
 When used with FlowScale, these nodes unlock additional capabilities:
