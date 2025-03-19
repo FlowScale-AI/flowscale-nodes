@@ -147,7 +147,7 @@ class FSSaveAudio:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "filename_prefix": ("STRING", {"default": "audio/FlowScale"})
+                "filename_prefix": ("STRING", {"default": "FlowScale"})
             },
             "optional": {
                 "format": (["flac", "wav", "mp3", "ogg"], {"default": "flac"}),

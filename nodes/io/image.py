@@ -87,7 +87,7 @@ class FSSaveImage:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "filename_prefix": ("STRING", {"default": "FlowScale_"}),
+                "filename_prefix": ("STRING", {"default": "FlowScale"}),
                 "format": (["png", "jpg", "jpeg", "webp"], {"default": "png"})
             },
             "optional": {
@@ -105,7 +105,7 @@ class FSSaveImage:
     CATEGORY = "FlowScale/IO"
     OUTPUT_NODE = True
     
-    def save_image(self, images, filename_prefix, format="png", quality=100, lossless=False, label="Output Image"):
+    def save_image(self, images, filename_prefix="FlowScale", format="png", quality=100, lossless=False, label="Output Image"):
         output_dir = folder_paths.get_output_directory()
         
         # Create directory if it doesn't exist

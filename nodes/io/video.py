@@ -185,7 +185,7 @@ class FSSaveVideo:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "filename_prefix": ("STRING", {"default": "FlowScale_"}),
+                "filename_prefix": ("STRING", {"default": "FlowScale"}),
                 "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.1}),
             },
             "optional": {
@@ -203,7 +203,7 @@ class FSSaveVideo:
     CATEGORY = "FlowScale/IO"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename_prefix="FlowScale_", fps=24.0, format="mp4", quality=95, audio_path="", label="Output Video"):
+    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, audio_path="", label="Output Video"):
         print(f"I/O Label: {label}")
         output_dir = folder_paths.get_output_directory()
         

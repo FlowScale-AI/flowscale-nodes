@@ -32,7 +32,7 @@ class FSSaveText:
         return {
             "required": {
                 "text": ("STRING", {"forceInput": True}),
-                "filename_prefix": ("STRING", {"default": "FlowScale_"}),
+                "filename_prefix": ("STRING", {"default": "FlowScale"}),
             },
             "optional": {
                 "label": ("STRING", {"default": "Input Image"}),
@@ -47,7 +47,7 @@ class FSSaveText:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
-    def save_text(self, text, filename_prefix="FlowScale_", label="Input Image"):
+    def save_text(self, text, filename_prefix="FlowScale", label="Input Image"):
         print(f"I/O Label: {label}")
         import os
 
