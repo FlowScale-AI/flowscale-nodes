@@ -7,6 +7,12 @@ from PIL import Image
 import folder_paths
 import requests
 from io import BytesIO
+from pillow_heif import register_heif_opener
+from pillow_avif import register_avif_opener
+
+# Register HEIF and AVIF support
+register_heif_opener()
+register_avif_opener()
 
 class FSLoadImage:
     @classmethod
@@ -104,12 +110,12 @@ class FSSaveImage:
             "required": {
                 "images": ("IMAGE",),
                 "filename_prefix": ("STRING", {"default": "FlowScale"}),
-                "format": (["png", "jpg", "jpeg", "webp"], {"default": "png"})
+                "format": (["png", "jpg", "jpeg", "webp", "avif", "heif"], {"default": "png"})
             },
             "optional": {
                 "label": ("STRING", {"default": "Output Image"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
-                "lossless": ("BOOLEAN", {"default": False, "tooltip": "Use lossless compression for webp"})
+                "lossless": ("BOOLEAN", {"default": False, "tooltip": "Use lossless compression for webp/avif"})
             }
         }
 
@@ -152,8 +158,10 @@ class FSSaveImage:
             save_path = os.path.join(output_dir, save_filename)
             
             # Save based on format with appropriate options
-            if format in ["webp"]:
+            if format in ["webp", "avif"]:
                 pil_image.save(save_path, format=format.upper(), quality=quality, lossless=lossless)
+            elif format == "heif":
+                pil_image.save(save_path, format="HEIF", quality=quality)
             elif format in ["jpg", "jpeg"]:
                 pil_image.save(save_path, format="JPEG", quality=quality)
             else:
