@@ -153,11 +153,13 @@ class FSSaveImage:
                 
             random_segment = ''.join(random.choices(string.digits, k=6))
             save_filename = f"{filename_prefix}_{random_segment}.{file_extension}"
+            preview_filename = f"{filename_prefix}_{random_segment}_preview.png"
             
             # Full save path
             save_path = os.path.join(output_dir, save_filename)
+            preview_path = os.path.join(output_dir, preview_filename)
             
-            # Save based on format with appropriate options
+            # Save the actual image in requested format
             if format in ["webp", "avif"]:
                 pil_image.save(save_path, format=format.upper(), quality=quality, lossless=lossless)
             elif format == "heif":
@@ -167,26 +169,27 @@ class FSSaveImage:
             else:
                 # PNG and others
                 pil_image.save(save_path)
+            
+            # For HEIF format, save a PNG copy for preview
+            if format == "heif":
+                pil_image.save(preview_path, format="PNG")
+                preview_filename = preview_filename  # Use PNG version for preview
+            else:
+                preview_filename = save_filename  # Use original file for preview
                 
             results.append(save_path)
             
             # Get output subfolder - this is typically the subfolder inside the output directory
             subfolder = ""
             
-            # Add to preview images list - use ComfyUI standard format (no format parameter)
+            # Add to preview images list
             preview_images.append({
-                "filename": save_filename,
+                "filename": preview_filename,
                 "subfolder": subfolder,
                 "type": "output"
             })
         
         print(f"I/O Label: {label}")
         
-        # Debug output to help troubleshoot
-        print(f"Preview images: {preview_images}")
-        
-        # First return value must be a tuple matching RETURN_TYPES
         result_string = results[0] if results else ""
-        
-        # Format the return value properly for ComfyUI
         return {"ui": {"images": preview_images}, "result": (result_string,)}
