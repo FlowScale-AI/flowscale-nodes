@@ -8,9 +8,8 @@ link.type = 'text/css';
 link.href = 'extensions/flowscale-nodes/web/css/emoji.css';
 document.head.appendChild(link);
 
-// Override node title handling
 function setupFlowscaleNode(node, nodeData) {
-    // ...existing code...
+    // Setup
 }
 
 function createVideoPreview(node, videoInfo) {
@@ -50,6 +49,49 @@ function createVideoPreview(node, videoInfo) {
 
     // Add elements to container
     container.appendChild(video);
+    container.appendChild(info);
+
+    // Add container to node
+    node.appendChild(container);
+}
+
+function createAudioPreview(node, audioInfo) {
+    // Remove existing preview if any
+    const existingPreview = node.querySelector('.audio-preview');
+    if (existingPreview) {
+        existingPreview.remove();
+    }
+
+    // Create audio container
+    const container = document.createElement('div');
+    container.className = 'audio-preview';
+    container.style.cssText = 'margin: 10px; padding: 10px; border: 1px solid #666; border-radius: 4px;';
+
+    // Create audio element
+    const audio = document.createElement('audio');
+    audio.style.cssText = 'width: 100%; border-radius: 2px;';
+    audio.controls = true;
+
+    // Set audio source based on type
+    if (audioInfo.url.startsWith('file=')) {
+        const filePath = audioInfo.url.substring(5);
+        audio.src = `/view/${encodeURIComponent(filePath)}`;
+    } else {
+        audio.src = audioInfo.url;
+    }
+
+    // Add audio info
+    const info = document.createElement('div');
+    info.style.cssText = 'margin-top: 5px; font-size: 12px; color: #aaa;';
+    info.innerHTML = `
+        <div>Filename: ${audioInfo.filename}</div>
+        ${audioInfo.sample_rate ? `<div>Sample Rate: ${audioInfo.sample_rate} Hz</div>` : ''}
+        ${audioInfo.channels ? `<div>Channels: ${audioInfo.channels}</div>` : ''}
+        ${audioInfo.duration ? `<div>Duration: ${audioInfo.duration.toFixed(2)}s</div>` : ''}
+    `;
+
+    // Add elements to container
+    container.appendChild(audio);
     container.appendChild(info);
 
     // Add container to node
@@ -172,6 +214,32 @@ async function uploadVideo(file) {
     }
 }
 
+async function uploadAudio(file) {
+    try {
+        // Reusing the video upload endpoint since it accepts any file
+        const body = new FormData();
+        const new_file = new File([file], file.name, {
+            type: file.type,
+            lastModified: file.lastModified,
+        });
+        body.append("video", new_file);  // The endpoint uses "video" key but accepts audio files
+        
+        // Upload the file
+        const resp = await api.fetchApi("/flowscale/io/upload", {
+            method: "POST",
+            body: body
+        });
+
+        if (resp.status === 200) {
+            return await resp.json();
+        } else {
+            alert(resp.status + " - " + resp.statusText);
+        }
+    } catch (error) {
+        alert(error);
+    }
+}
+
 async function uploadFiles(files) {
     const uploadedFiles = [];
     
@@ -226,6 +294,29 @@ async function getVideoList() {
         return [];
     } catch (error) {
         console.error("Error fetching video files:", error);
+        return [];
+    }
+}
+
+async function getAudioList() {
+    try {
+        const res = await api.fetchApi('/flowscale/io/list?directory=input');
+        if (res.status === 200) {
+            const data = await res.json();
+            // Filter for audio files
+            const audioFiles = data.directory_contents.filter(file => 
+                file.toLowerCase().endsWith('.mp3') || 
+                file.toLowerCase().endsWith('.wav') || 
+                file.toLowerCase().endsWith('.ogg') ||
+                file.toLowerCase().endsWith('.flac') ||
+                file.toLowerCase().endsWith('.m4a') ||
+                file.toLowerCase().endsWith('.aac')
+            );
+            return audioFiles;
+        }
+        return [];
+    } catch (error) {
+        console.error("Error fetching audio files:", error);
         return [];
     }
 }
@@ -289,6 +380,72 @@ function addVideoUploadFeature(nodeType, nodeData) {
         // Handle video preview data
         if (message && message.ui && message.ui.video && message.ui.video.length > 0) {
             createVideoPreview(this.domElement, message.ui.video[0]);
+        }
+    };
+}
+
+function addAudioUploadFeature(nodeType, nodeData) {
+    const origOnNodeCreated = nodeType.prototype.onNodeCreated;
+    nodeType.prototype.onNodeCreated = function() {
+        if (origOnNodeCreated) {
+            origOnNodeCreated.apply(this, arguments);
+        }
+
+        // Add file input element for audio upload
+        const fileInput = document.createElement("input");
+        Object.assign(fileInput, {
+            type: "file",
+            accept: "audio/wav,audio/mp3,audio/ogg,audio/flac,audio/mpeg,audio/aac",
+            style: "display: none",
+            onchange: async function() {
+                if (fileInput.files.length) {
+                    const file = fileInput.files[0];
+                    const uploadResult = await uploadAudio(file);
+                    
+                    if (uploadResult) {
+                        // Update the audio list in the node
+                        const audioWidget = this.widgets.find(w => w.name === "audio");
+                        if (audioWidget) {
+                            // Refresh the widget's values
+                            audioWidget.options.values = await getAudioList();
+                            audioWidget.value = uploadResult.filename;
+                            if (audioWidget.callback) {
+                                audioWidget.callback(uploadResult.filename);
+                            }
+                        }
+                    }
+                }
+            }.bind(this)
+        });
+        
+        document.body.appendChild(fileInput);
+
+        // Add upload button widget
+        const uploadWidget = this.addWidget("button", "Upload Audio", null, () => {
+            fileInput.click();
+        });
+        uploadWidget.options.serialize = false;
+
+        // Remove file input when node is removed
+        const origOnRemoved = this.onRemoved;
+        this.onRemoved = function() {
+            fileInput.remove();
+            if (origOnRemoved) {
+                origOnRemoved.apply(this, arguments);
+            }
+        };
+    };
+
+    // Override onExecuted to handle audio preview
+    const origOnExecuted = nodeType.prototype.onExecuted;
+    nodeType.prototype.onExecuted = function(message) {
+        if (origOnExecuted) {
+            origOnExecuted.call(this, message);
+        }
+
+        // Handle audio preview data
+        if (message && message.ui && message.ui.audio && message.ui.audio.length > 0) {
+            createAudioPreview(this.domElement, message.ui.audio[0]);
         }
     };
 }
@@ -357,6 +514,7 @@ function addMultiFileUploadFeature(nodeType, nodeData) {
                 }
             } catch (error) {
                 console.error("Error uploading files:", error);
+                alert("Some files failed to upload.");
             } finally {
                 // Reset upload button safely
                 if (uploadButtonWidget) {
@@ -436,6 +594,11 @@ app.registerExtension({
         // Add upload features to specific nodes
         if (nodeData.name === "FSLoadVideo") {
             addVideoUploadFeature(nodeType, nodeData);
+        }
+        
+        // Add audio upload feature to FSLoadAudio node
+        if (nodeData.name === "FSLoadAudio") {
+            addAudioUploadFeature(nodeType, nodeData);
         }
         
         // Add multi-file upload feature to MultiFileLoaderNode

@@ -18,7 +18,7 @@ class FSLoadAudio:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = folder_paths.filter_files_content_types(os.listdir(input_dir), ["audio", "video"])
+        files = folder_paths.filter_files_content_types(os.listdir(input_dir), ["audio"])
         return {
             "required": {
                 "audio": (sorted(files), ),
@@ -64,15 +64,29 @@ class FSLoadAudio:
             # Create audio dictionary in the expected format
             audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
             
+            # Create preview information for the UI
+            preview = {
+                "ui": {
+                    "audio": [{
+                        "filename": os.path.basename(audio_path if not audio_url else audio_url),
+                        "type": "input",
+                        "sample_rate": sample_rate,
+                        "channels": waveform.shape[0],
+                        "duration": waveform.shape[1] / sample_rate,
+                        "url": f"file={audio_path}" if not audio_url else audio_url
+                    }]
+                }
+            }
+            
             print(f"I/O Label: {label}")
-            return (audio_data,)
+            return {"ui": preview, "result": (audio_data,)}
 
         except Exception as e:
             print(f"Error loading audio: {e}")
             # Return empty audio dict on error
             empty_waveform = torch.zeros((1, 1), dtype=torch.float32)
             empty_audio = {"waveform": empty_waveform.unsqueeze(0), "sample_rate": 44100}
-            return (empty_audio,)
+            return {"result": (empty_audio,)}
 
     @classmethod
     def IS_CHANGED(s, audio, **kwargs):
