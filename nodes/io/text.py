@@ -19,7 +19,7 @@ class FSLoadText:
 
     FUNCTION = "run"
 
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Text"
 
     def run(self, default_value=None, label="Input Image"):
         print(f"I/O Label: {label}")
@@ -41,7 +41,7 @@ class FSSaveText:
 
     FUNCTION = "save_text"
 
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Text"
 
     OUTPUT_NODE = True
     RETURN_TYPES = ()

@@ -31,7 +31,7 @@ class SaveModelToFlowscaleVolume:
   RETURN_TYPES = ("STRING",)
   RETURN_NAMES = ("download_url",)
   FUNCTION = "upload_model_to_flowscale_volume"
-  CATEGORY = "FlowScale/Utilities"
+  CATEGORY = "FlowScale/Models/Storage"
   OUTPUT_NODE = True
   
   def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, huggingface_url=None, s3_url=None, civitai_url=None):
@@ -84,6 +84,5 @@ class SaveModelToFlowscaleVolume:
       f.write(json.dumps(data))
     
     return {"ui": {"text": download_url}, "result": (download_url,)}
-    
-    
-    
+
+

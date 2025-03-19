@@ -27,7 +27,7 @@ class FSLoadImage:
 
     FUNCTION = "load_image"
 
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Image"
 
     def load_image(self, image, label="Input Image"):
         try:
@@ -80,7 +80,7 @@ class FSLoadImageFromURL:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "load_image_from_url"
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Image"
     def load_image_from_url(self, image_url, label="Input Image"):
         try:
             response = requests.get(image_url)
@@ -118,7 +118,7 @@ class FSSaveImage:
     
     FUNCTION = "save_image"
     
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Image"
     OUTPUT_NODE = True
     
     def save_image(self, images, filename_prefix="FlowScale", format="png", quality=100, lossless=False, label="Output Image"):

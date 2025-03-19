@@ -28,7 +28,7 @@ class MultiFileLoaderNode:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("file_paths",)
     FUNCTION = "process_files"
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Files/Batch"
 
     def process_files(self, file_list, label="Multi-File Uploader", filter_extensions="", extract_metadata=False):
         """

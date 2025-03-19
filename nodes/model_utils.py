@@ -19,7 +19,7 @@ class LoadModelFromCivitAI:
   RETURN_TYPES = ("STRING",)
   RETURN_NAMES = ("filepath",)
   FUNCTION = "load_model_from_civitai"
-  CATEGORY = "FlowScale/Utilities"
+  CATEGORY = "FlowScale/Models/Download"
 
   def load_model_from_civitai(self, model_url, path):
       env = os.environ.copy()

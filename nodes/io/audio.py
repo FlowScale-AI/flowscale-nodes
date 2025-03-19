@@ -28,7 +28,7 @@ class FSLoadAudio:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "load_audio"
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Audio"
 
     def load_audio(self, audio, label="Input Audio"):
         try:
@@ -96,7 +96,7 @@ class FSLoadAudioFromURL:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "load_audio_from_url"
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Audio"
 
     def load_audio_from_url(self, audio_url="", label="Input Audio"):
         try:
@@ -194,7 +194,7 @@ class FSSaveAudio:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
     FUNCTION = "save_audio"
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Audio"
     OUTPUT_NODE = True
     
     def save_audio(self, audio, filename_prefix, format="flac", quality=95, label="Output Audio", prompt=None, extra_pnginfo=None):
@@ -336,7 +336,7 @@ class FSProcessAudio:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "process_audio"
-    CATEGORY = "FlowScale/Utilities"
+    CATEGORY = "FlowScale/Media/Audio"
 
     def process_audio(self, audio, operation, fade_time=1.0, trim_start=0.0, trim_end=0.0, 
                      target_sr=44100, speed_factor=1.0, label="Processed Audio"):
@@ -453,7 +453,7 @@ class FSCombineAudio:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "combine_audio"
-    CATEGORY = "FlowScale/Utilities"
+    CATEGORY = "FlowScale/Media/Audio"
 
     def combine_audio(self, audio1, audio2, operation, volume1=1.0, volume2=1.0, label="Combined Audio"):
         try:

@@ -37,7 +37,7 @@ class FSLoadVideo:
                    "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
                }}
 
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Video"
 
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("IMAGES",)
@@ -136,7 +136,7 @@ class FSLoadVideoFromURL:
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
             }
         }
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Video"
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("IMAGES",)
     FUNCTION = "load_video_from_url"
@@ -200,7 +200,7 @@ class FSSaveVideo:
     
     FUNCTION = "save_video"
     
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Media/Video"
     OUTPUT_NODE = True
     
     def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, audio_path="", label="Output Video"):

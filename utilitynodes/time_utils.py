@@ -27,9 +27,8 @@ class Delay:
   RETURN_TYPES = ("*", )
   RETURN_NAMES = ("delayed_response", )
   FUNCTION = "delay"
-  CATEGORY = "FlowScale/Utilities"
+  CATEGORY = "FlowScale/Utils/Time"
   
   def delay(self, delay: int):
     time.sleep(delay)
     return "Delayed by {} seconds".format(delay)
-  

@@ -23,7 +23,7 @@ class FileExtractorNode:
     RETURN_TYPES = ("STRING", "STRING", "INT")
     RETURN_NAMES = ("file_path", "file_metadata", "current_index")
     FUNCTION = "extract_file"
-    CATEGORY = "FlowScale/IO"
+    CATEGORY = "FlowScale/Files/Extract"
 
     # Store state for auto-increment feature
     current_index = 0
