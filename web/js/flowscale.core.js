@@ -55,6 +55,53 @@ function createVideoPreview(node, videoInfo) {
     node.appendChild(container);
 }
 
+function createImagePreview(node, imageInfo) {
+    // Remove existing preview if any
+    const existingPreview = node.querySelector('.image-preview');
+    if (existingPreview) {
+        existingPreview.remove();
+    }
+
+    // Create image container
+    const container = document.createElement('div');
+    container.className = 'image-preview';
+    container.style.cssText = 'margin: 10px; padding: 10px; border: 1px solid #666; border-radius: 4px;';
+
+    // Create image element
+    const img = document.createElement('img');
+    img.style.cssText = 'width: 100%; max-height: 200px; border-radius: 2px; object-fit: contain;';
+    img.onerror = (e) => {
+        console.error('Failed to load image:', imageInfo, e);
+        img.alt = 'Failed to load image';
+        img.style.height = '100px';
+        img.style.background = '#333';
+        img.style.display = 'flex';
+        img.style.justifyContent = 'center';
+        img.style.alignItems = 'center';
+    };
+
+    // Set image source using ComfyUI's standard view API format
+    // The correct format is: /view?filename={filename}&subfolder={encodeURIComponent(imageInfo.subfolder)}&type={encodeURIComponent(imageInfo.type)}`;
+    const imageUrl = `/view?filename=${encodeURIComponent(imageInfo.filename)}&subfolder=${encodeURIComponent(imageInfo.subfolder)}&type=${encodeURIComponent(imageInfo.type)}`;
+    console.log('Image URL constructed:', imageUrl);
+    img.src = imageUrl;
+
+    // Add image info
+    const info = document.createElement('div');
+    info.style.cssText = 'margin-top: 5px; font-size: 12px; color: #aaa;';
+    info.innerHTML = `
+        <div>Filename: ${imageInfo.filename}</div>
+        ${imageInfo.format ? `<div>Format: ${imageInfo.format}</div>` : ''}
+    `;
+
+    // Add elements to container
+    container.appendChild(img);
+    container.appendChild(info);
+
+    // Add container to node
+    node.appendChild(container);
+}
+
 function createAudioPreview(node, audioInfo) {
     // Remove existing preview if any
     const existingPreview = node.querySelector('.audio-preview');
@@ -604,6 +651,27 @@ app.registerExtension({
         // Add multi-file upload feature to MultiFileLoaderNode
         if (nodeData.name === "MultiFileLoaderNode") {
             addMultiFileUploadFeature(nodeType, nodeData);
+        }
+        
+        // Add onExecuted handler for FSSaveImage to show image preview
+        if (nodeData.name === "FSSaveImage") {
+            const origOnExecuted = nodeType.prototype.onExecuted;
+            nodeType.prototype.onExecuted = function(message) {
+                if (origOnExecuted) {
+                    origOnExecuted.call(this, message);
+                }
+                
+                // Debug logging
+                console.log("FSSaveImage node executed, message received:", message);
+                
+                // Handle image preview data
+                if (message && message.ui && message.ui.images && message.ui.images.length > 0) {
+                    console.log("Creating image preview with:", message.ui.images[0]);
+                    createImagePreview(this.domElement, message.ui.images[0]);
+                } else {
+                    console.log("No image preview data found in message");
+                }
+            };
         }
     }
 });

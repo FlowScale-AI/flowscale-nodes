@@ -55,8 +55,11 @@ class FSLoadImage:
             # Convert to numpy array and normalize
             img_np = np.array(img).astype(np.float32) / 255.0
             
+            # Convert numpy to torch tensor for ComfyUI compatibility
+            img_tensor = torch.from_numpy(img_np)
+            
             # Add batch dimension expected by ComfyUI
-            img_tensor = img_np[np.newaxis, ...]
+            img_tensor = img_tensor.unsqueeze(0)
             
             print(f"I/O Label: {label}")
             return (img_tensor,)
@@ -85,7 +88,10 @@ class FSLoadImageFromURL:
             img = Image.open(BytesIO(response.content))
             img = img.convert("RGB")
             img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = img_np[np.newaxis, ...]
+            # Convert numpy to torch tensor for ComfyUI compatibility
+            img_tensor = torch.from_numpy(img_np)
+            # Add batch dimension expected by ComfyUI
+            img_tensor = img_tensor.unsqueeze(0)
             print(f"I/O Label: {label}")
             return (img_tensor,)
         except Exception as e:
@@ -122,6 +128,7 @@ class FSSaveImage:
         os.makedirs(output_dir, exist_ok=True)
         
         results = []
+        preview_images = []
         
         for i, image in enumerate(images):
             # Convert from tensor to numpy if needed
@@ -154,6 +161,24 @@ class FSSaveImage:
                 pil_image.save(save_path)
                 
             results.append(save_path)
+            
+            # Get output subfolder - this is typically the subfolder inside the output directory
+            subfolder = ""
+            
+            # Add to preview images list - use ComfyUI standard format (no format parameter)
+            preview_images.append({
+                "filename": save_filename,
+                "subfolder": subfolder,
+                "type": "output"
+            })
+        
         print(f"I/O Label: {label}")
         
-        return (results[0] if results else "",)
+        # Debug output to help troubleshoot
+        print(f"Preview images: {preview_images}")
+        
+        # First return value must be a tuple matching RETURN_TYPES
+        result_string = results[0] if results else ""
+        
+        # Format the return value properly for ComfyUI
+        return {"ui": {"images": preview_images}, "result": (result_string,)}
