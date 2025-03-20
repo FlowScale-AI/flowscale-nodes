@@ -14,11 +14,12 @@ import pillow_avif
 register_heif_opener()
 _ = pillow_avif
 
+IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "avif", "heif"]
 class FSLoadImage:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f)) and f.split('.')[-1].lower() in IMAGE_EXTENSIONS]
         return {
             "required": {
                 "image": (sorted(files), {"image_upload": True}),
