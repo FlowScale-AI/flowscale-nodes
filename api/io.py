@@ -168,7 +168,7 @@ async def fetch_path_contents(request):
     
     base_directory = os.getcwd()
         
-    BLACKLISTED_DIRECTORIES = ["config", "custom_nodes", "api_server", "app", "comfy"]
+    BLACKLISTED_DIRECTORIES = ["config", "api_server", "app", "comfy"]
     
     sanitized_directory_name = os.path.normpath(directory_name).lstrip(os.sep).rstrip(os.sep)
     
@@ -221,7 +221,7 @@ async def search_file(request):
         filepath = filepath.lstrip("/").lstrip("\\")
 
     base_directory = os.getcwd()
-    BLACKLISTED_DIRECTORIES = ["custom_nodes", "api_server", "app", "comfy"]
+    BLACKLISTED_DIRECTORIES = ["api_server", "app", "comfy"]
         
     sanitized_filepath = os.path.normpath(filepath).lstrip(os.sep).rstrip(os.sep)
     
@@ -253,6 +253,7 @@ async def search_file(request):
         ".gif",
         ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg", ".webp", ".avif", ".jfif",
         ".txt", ".pdf", ".docx",
+        ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a",
     ]
     
     candidates = []
