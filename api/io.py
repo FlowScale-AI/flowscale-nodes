@@ -39,10 +39,10 @@ async def upload_media(request):
         ext = os.path.splitext(filename)[1].lower()
         
         # Define allowed extensions
-        allowed_image_exts = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
-        allowed_video_exts = ['.mp4', '.webm', '.mkv', '.mov', '.avi']
+        allowed_image_exts = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.heif']
+        allowed_video_exts = ['.mp4', '.webm', '.mkv', '.mov', '.avi', '.wmv', '.flv', '.gif']
         allowed_audio_exts = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
-        
+
         # Check if extension is allowed
         if ext not in allowed_image_exts + allowed_video_exts + allowed_audio_exts:
             return web.json_response(
