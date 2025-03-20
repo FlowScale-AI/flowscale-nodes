@@ -251,7 +251,7 @@ async def search_file(request):
     supported_extensions = [
         ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",
         ".gif",
-        ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg", ".webp", ".avif", ".jfif",
+        ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".svg", ".webp", ".avif", ".jfif", ".heif",
         ".txt", ".pdf", ".docx",
         ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a",
     ]
