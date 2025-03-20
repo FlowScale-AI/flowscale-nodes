@@ -191,7 +191,7 @@ class FSSaveVideo:
             "optional": {
                 "format": (["mp4", "avi", "mov", "webm"], {"default": "mp4"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
-                "audio_path": ("STRING", {"default": ""}),
+                # "audio_path": ("STRING", {"default": ""}),
                 "label": ("STRING", {"default": "Output Video"}),
             }
         }
@@ -203,7 +203,7 @@ class FSSaveVideo:
     CATEGORY = "FlowScale/Media/Video"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, audio_path="", label="Output Video"):
+    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, label="Output Video"):
         print(f"I/O Label: {label}")
         output_dir = folder_paths.get_output_directory()
         
@@ -235,7 +235,7 @@ class FSSaveVideo:
                         cv2.imwrite(frame_path, bgr_frame)
                     
                     # Use FFmpeg to encode video
-                    self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality, audio_path)
+                    self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality, None)
                     
                 finally:
                     # Clean up temporary directory
@@ -307,11 +307,11 @@ class FSSaveVideo:
                 video_writer.release()
                 
                 # Add audio if provided
-                if audio_path and os.path.exists(audio_path):
-                    if self._has_ffmpeg():
-                        self._add_audio_with_ffmpeg(output_path, audio_path, format)
-                    else:
-                        print("FFmpeg not found, cannot add audio to video")
+                # if audio_path and os.path.exists(audio_path):
+                #     if self._has_ffmpeg():
+                #         self._add_audio_with_ffmpeg(output_path, audio_path, format)
+                #     else:
+                #         print("FFmpeg not found, cannot add audio to video")
             
             print(f"Video saved to: {output_path}")
             
