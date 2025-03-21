@@ -14,6 +14,10 @@ import json
 import datetime
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # List of supported video extensions
 VIDEO_EXTENSIONS = ['webm', 'mp4', 'mkv', 'gif', 'mov', 'avi', 'wmv']
@@ -48,12 +52,13 @@ class FSLoadVideo:
     FUNCTION = "load_video"
 
     def load_video(self, video, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None, label="Input Video"):
-        print(f"I/O Label: {label}")
+        logger.info(f"I/O Label: {label}")
         video_path = folder_paths.get_annotated_filepath(video)
         
         # Open the video file
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
+            logger.error(f"Could not open video file: {video_path}")
             raise ValueError(f"Could not open video file: {video_path}")
         
         # Get video properties
@@ -146,7 +151,7 @@ class FSLoadVideoFromURL:
     FUNCTION = "load_video_from_url"
 
     def load_video_from_url(self, video_url, skip_first_frames=0, select_every_nth=1, prompt=None, extra_pnginfo=None, label="Input Video"):
-        print(f"I/O Label: {label}")
+        logger.info(f"I/O Label: {label}")
         # Check if the URL is valid
         if not re.match(r'^(http|https)://', video_url):
             raise ValueError("Invalid URL format. Please provide a valid HTTP or HTTPS URL.")
@@ -210,7 +215,7 @@ class FSSaveVideo:
     OUTPUT_NODE = True
     
     def save_video(self, images, filename_prefix="FlowScale", fps=24.0, quality=95, label="Output Video", prompt=None, extra_pnginfo=None):
-        print(f"I/O Label: {label}")
+        logger.info(f"I/O Label: {label}")
         output_dir = folder_paths.get_output_directory()
         format = "mp4"  # Default format
         # Create directory if it doesn't exist
@@ -247,8 +252,6 @@ class FSSaveVideo:
         
         # Save first frame as PNG with metadata
         metadata = PngInfo()
-        if prompt is not None:
-            metadata.add_text("prompt", json.dumps(prompt))
         if extra_pnginfo is not None:
             for x in extra_pnginfo:
                 metadata.add_text(x, json.dumps(extra_pnginfo[x]))
@@ -282,7 +285,7 @@ class FSSaveVideo:
                 # Save frames to temporary directory
                 temp_dir = tempfile.mkdtemp()
                 try:
-                    print(f"Saving {frame_count} frames to temporary directory...")
+                    logger.info(f"Saving {frame_count} frames to temporary directory...")
                     for i, frame in enumerate(uint8_frames):
                         # Save each frame as PNG
                         frame_path = os.path.join(temp_dir, f"frame_{i:05d}.png")
@@ -291,7 +294,7 @@ class FSSaveVideo:
                         cv2.imwrite(frame_path, bgr_frame)
                     
                     # Use FFmpeg to encode video
-                    print("Using FFmpeg for video encoding...")
+                    logger.info("Using FFmpeg for video encoding...")
                     self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality)
                     
                 finally:
@@ -299,7 +302,7 @@ class FSSaveVideo:
                     shutil.rmtree(temp_dir)
             else:
                 # Fall back to OpenCV for encoding
-                print("Using OpenCV for video encoding...")
+                logger.info("Using OpenCV for video encoding...")
                 
                 # Choose codec based on format
                 if format == "mp4":
@@ -324,7 +327,7 @@ class FSSaveVideo:
                                     os.remove(test_path)
                                     
                         except Exception as e:
-                            print(f"Codec {codec} failed: {str(e)}")
+                            logger.info(f"Codec {codec} failed: {str(e)}")
                     
                     if working_codec is None:
                         # If no codec worked, try a very common codec
@@ -334,7 +337,7 @@ class FSSaveVideo:
                         save_filename = f"{filename}_{counter:05}.{format}"
                     
                     fourcc = cv2.VideoWriter_fourcc(*working_codec)
-                    print(f"Using codec: {working_codec}")
+                    logger.info(f"Using codec: {working_codec}")
                     
                 elif format == "avi":
                     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -365,7 +368,7 @@ class FSSaveVideo:
                 video_writer.release()
             
             output_files.append(output_path)
-            print(f"Video saved to: {output_path}")
+            logger.info(f"Video saved to: {output_path}")
             
             # Create preview info for web player compatibility
             preview = {
@@ -389,7 +392,7 @@ class FSSaveVideo:
             return {"ui": preview, "result": (output_path,)}
             
         except Exception as e:
-            print(f"Error saving video: {e}")
+            logger.error(f"Error saving video: {e}")
             return {"ui": {"videos": []}, "result": ("",)}
     
     def _has_ffmpeg(self):
@@ -441,9 +444,10 @@ class FSSaveVideo:
         # Output file
         cmd.append(output_path)
         
-        print(f"Running FFmpeg: {' '.join(cmd)}")
+        logger.info(f"Running FFmpeg: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         
         # Verify the output exists
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            logger.error("FFmpeg failed to create the video file")
             raise ValueError("FFmpeg failed to create the video file")
