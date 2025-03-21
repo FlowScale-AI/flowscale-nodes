@@ -10,6 +10,7 @@ import re
 import aiofiles
 import boto3
 import shutil
+import folder_paths
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -498,10 +499,7 @@ def is_file_ready(file_path, max_delay=15):
     
     return True
 
-from aiohttp import web
-import folder_paths
-import os
-
+@PromptServer.instance.routes.post("/upload/video")
 async def upload_video(request):
     try:
         data = await request.post()
@@ -524,29 +522,10 @@ async def upload_video(request):
     except Exception as e:
         return web.Response(status=500, text=str(e))
 
-# Register route
-routes = [
-    web.post("/upload/video", upload_video)
-]
+VIDEO_EXTENSIONS = ['mp4', 'avi', 'mov', 'webm']
 
-import os
-from aiohttp import web
-import folder_paths
-from .log import logger
-
-VIDEO_EXTENSIONS = ['webm', 'mp4', 'mkv', 'gif', 'mov', 'avi', 'wmv']
-
-def setup_io_handlers():
-    @web.middleware
-    async def error_middleware(request, handler):
-        try:
-            response = await handler(request)
-            return response
-        except Exception as e:
-            logger.error(f"Error handling request: {e}")
-            return web.Response(status=500, text=str(e))
-
-    async def get_video_files(request):
+@PromptServer.instance.routes.get("/fs/get_video_files")
+async def get_video_files(request):
         input_dir = folder_paths.get_input_directory()
         files = []
         
@@ -561,8 +540,3 @@ def setup_io_handlers():
         except Exception as e:
             logger.error(f"Error getting video files: {e}")
             return web.Response(status=500, text=str(e))
-
-    # Add routes to server
-    from server import PromptServer
-    PromptServer.instance.app.router.add_get('/fs/get_video_files', get_video_files)
-    logger.info("FlowScale IO handlers initialized")
