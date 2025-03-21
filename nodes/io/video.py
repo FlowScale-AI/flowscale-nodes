@@ -292,6 +292,7 @@ class FSSaveVideo:
                         cv2.imwrite(frame_path, bgr_frame)
                     
                     # Use FFmpeg to encode video
+                    print("Using FFmpeg for video encoding...")
                     self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality)
                     
                 finally:
