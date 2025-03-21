@@ -10,6 +10,10 @@ import requests
 import shutil
 import subprocess
 import torch
+import json
+import datetime
+from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 
 # List of supported video extensions
 VIDEO_EXTENSIONS = ['webm', 'mp4', 'mkv', 'gif', 'mov', 'avi', 'wmv']
@@ -191,8 +195,11 @@ class FSSaveVideo:
             "optional": {
                 "format": (["mp4", "avi", "mov", "webm"], {"default": "mp4"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
-                # "audio_path": ("STRING", {"default": ""}),
                 "label": ("STRING", {"default": "Output Video"}),
+            },
+            "hidden": {
+                "prompt": "PROMPT", 
+                "extra_pnginfo": "EXTRA_PNGINFO"
             }
         }
     RETURN_TYPES = ("STRING",)
@@ -203,25 +210,75 @@ class FSSaveVideo:
     CATEGORY = "FlowScale/Media/Video"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, label="Output Video"):
+    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, label="Output Video", prompt=None, extra_pnginfo=None):
         print(f"I/O Label: {label}")
         output_dir = folder_paths.get_output_directory()
         
-        random_segment = ''.join(random.choices(string.digits, k=6))
-        filename = f"{filename_prefix}_{random_segment}.{format}"        
-            
-        output_path = os.path.join(output_dir, filename)
-        
         # Create directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
+        
+        # Get proper filename with counter
+        (
+            full_output_folder,
+            filename,
+            _,
+            subfolder,
+            _,
+        ) = folder_paths.get_save_image_path(filename_prefix, output_dir)
+        
+        # comfy counter workaround
+        max_counter = 0
+        # Loop through the existing files
+        matcher = re.compile(f"{re.escape(filename)}_(\\d+)\\D*\\..+", re.IGNORECASE)
+        for existing_file in os.listdir(full_output_folder):
+            # Check if the file matches the expected format
+            match = matcher.fullmatch(existing_file)
+            if match:
+                # Extract the numeric portion of the filename
+                file_counter = int(match.group(1))
+                # Update the maximum counter value if necessary
+                if file_counter > max_counter:
+                    max_counter = file_counter
+        # Increment the counter by 1 to get the next available value
+        counter = max_counter + 1
+        
+        # File name with counter
+        save_filename = f"{filename}_{counter:05}.{format}"
+        output_path = os.path.join(full_output_folder, save_filename)
+        
+        # Save first frame as PNG with metadata
+        metadata = PngInfo()
+        if prompt is not None:
+            metadata.add_text("prompt", json.dumps(prompt))
+        if extra_pnginfo is not None:
+            for x in extra_pnginfo:
+                metadata.add_text(x, json.dumps(extra_pnginfo[x]))
+        metadata.add_text("CreationTime", datetime.datetime.now().isoformat(" ")[:19])
+        
+        # Save first frame as PNG
+        first_image_file = f"{filename}_{counter:05}.png"
+        first_image_path = os.path.join(full_output_folder, first_image_file)
+        
+        results = []
+        output_files = []
         
         try:
             # Convert tensor to numpy and then to uint8
             uint8_frames = (images.cpu().numpy() * 255).astype(np.uint8)
             
+            # Save first frame as PNG
+            first_frame = uint8_frames[0]
+            Image.fromarray(first_frame).save(
+                first_image_path,
+                pnginfo=metadata,
+                compress_level=4,
+            )
+            output_files.append(first_image_path)
+            
             # Get dimensions
             frame_count, height, width, channels = uint8_frames.shape
             
+            # Try using FFmpeg first
             if self._has_ffmpeg():
                 # Save frames to temporary directory
                 temp_dir = tempfile.mkdtemp()
@@ -235,7 +292,7 @@ class FSSaveVideo:
                         cv2.imwrite(frame_path, bgr_frame)
                     
                     # Use FFmpeg to encode video
-                    self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality, None)
+                    self._encode_with_ffmpeg(temp_dir, output_path, fps, format, quality)
                     
                 finally:
                     # Clean up temporary directory
@@ -273,7 +330,8 @@ class FSSaveVideo:
                         # If no codec worked, try a very common codec
                         working_codec = 'XVID'
                         format = 'avi'  # Change format to match codec
-                        output_path = os.path.join(output_dir, f"{os.path.splitext(filename)[0]}.{format}")
+                        output_path = os.path.join(output_dir, f"{os.path.splitext(save_filename)[0]}.{format}")
+                        save_filename = f"{filename}_{counter:05}.{format}"
                     
                     fourcc = cv2.VideoWriter_fourcc(*working_codec)
                     print(f"Using codec: {working_codec}")
@@ -305,35 +363,30 @@ class FSSaveVideo:
                     video_writer.write(bgr_frame)
                     
                 video_writer.release()
-                
-                # Add audio if provided
-                # if audio_path and os.path.exists(audio_path):
-                #     if self._has_ffmpeg():
-                #         self._add_audio_with_ffmpeg(output_path, audio_path, format)
-                #     else:
-                #         print("FFmpeg not found, cannot add audio to video")
             
+            output_files.append(output_path)
             print(f"Video saved to: {output_path}")
             
-            # Create preview info
+            # Create preview info for web player compatibility
             preview = {
                 "ui": {
-                    "video": [{
-                        "filename": filename,
+                    "gifs": [{
+                        "filename": save_filename,
+                        "subfolder": subfolder,
                         "type": "output",
-                        "fps": fps,
+                        "frame_rate": fps,
                         "total_frames": len(images),
-                        "format": format,
-                        "url": f"file={output_path}"
+                        "format": 'video/h264-mp4' if format == 'mp4' else format,
+                        "workflow": first_image_file,
+                        "fullpath": output_path
                     }]
                 }
-            }
-            
+            }            
             return {"ui": preview, "result": (output_path,)}
             
         except Exception as e:
             print(f"Error saving video: {e}")
-            return ("",)
+            return {"ui": {"videos": []}, "result": ("",)}
     
     def _has_ffmpeg(self):
         try:
@@ -342,7 +395,7 @@ class FSSaveVideo:
         except (subprocess.SubprocessError, FileNotFoundError):
             return False
     
-    def _encode_with_ffmpeg(self, frame_dir, output_path, fps, format, quality, audio_path=None):
+    def _encode_with_ffmpeg(self, frame_dir, output_path, fps, format, quality):
         # Map quality (0-100) to CRF (0-51, lower is better)
         # Quality 95 -> CRF 15, Quality 0 -> CRF 51
         crf = max(0, min(51, int(51 - (quality / 100.0 * 36))))
@@ -378,10 +431,6 @@ class FSSaveVideo:
                 '-q:v', str(int(31 - (quality / 100.0 * 30)))  # Quality parameter
             ]
         
-        # Add audio if provided
-        if audio_path and os.path.exists(audio_path):
-            cmd.extend(['-i', audio_path, '-c:a', 'aac', '-shortest'])
-        
         # Output file
         cmd.append(output_path)
         
@@ -391,24 +440,3 @@ class FSSaveVideo:
         # Verify the output exists
         if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
             raise ValueError("FFmpeg failed to create the video file")
-    
-    def _add_audio_with_ffmpeg(self, video_path, audio_path, format):
-        with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as temp_file:
-            temp_path = temp_file.name
-            
-        cmd = [
-            'ffmpeg', '-y',
-            '-i', video_path,
-            '-i', audio_path,
-            '-c:v', 'copy',
-            '-c:a', 'aac',
-            '-shortest',
-            temp_path
-        ]
-        
-        print(f"Adding audio with FFmpeg: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True)
-        
-        # Replace the original file with the one with audio
-        os.replace(temp_path, video_path)
-        print(f"Added audio from {audio_path} to video")
