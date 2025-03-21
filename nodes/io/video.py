@@ -408,9 +408,10 @@ class FSSaveVideo:
                 '-framerate', str(fps),
                 '-i', os.path.join(frame_dir, 'frame_%05d.png'),
                 '-c:v', codec,
-                '-preset', 'medium',  # Speed/compression trade-off
+                '-preset', 'fast',  # Speed/compression trade-off
                 '-crf', str(crf),     # Quality
-                '-pix_fmt', 'yuv420p' # Widely compatible pixel format
+                '-pix_fmt', 'yuv420p', # Widely compatible pixel format
+                '-movflags', '+faststart' 
             ]
         elif format == "webm":
             codec = "libvpx-vp9"
@@ -419,7 +420,9 @@ class FSSaveVideo:
                 '-framerate', str(fps),
                 '-i', os.path.join(frame_dir, 'frame_%05d.png'),
                 '-c:v', codec,
-                '-b:v', f"{int(quality / 100.0 * 5000)}k"  # Bitrate
+                '-crf', '30',
+                '-b:v', '0',
+                '-pix_fmt', 'yuv420p'
             ]
         else:  # avi, mov, etc.
             codec = "mpeg4" if format == "avi" else "h264"
