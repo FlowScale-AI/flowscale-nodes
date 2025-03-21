@@ -193,7 +193,6 @@ class FSSaveVideo:
                 "fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 120.0, "step": 0.1}),
             },
             "optional": {
-                "format": (["mp4", "avi", "mov", "webm"], {"default": "mp4"}),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "label": ("STRING", {"default": "Output Video"}),
             },
@@ -210,10 +209,10 @@ class FSSaveVideo:
     CATEGORY = "FlowScale/Media/Video"
     OUTPUT_NODE = True
     
-    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, format="mp4", quality=95, label="Output Video", prompt=None, extra_pnginfo=None):
+    def save_video(self, images, filename_prefix="FlowScale", fps=24.0, quality=95, label="Output Video", prompt=None, extra_pnginfo=None):
         print(f"I/O Label: {label}")
         output_dir = folder_paths.get_output_directory()
-        
+        format = "mp4"  # Default format
         # Create directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
         
@@ -377,9 +376,13 @@ class FSSaveVideo:
                         "type": "output",
                         "frame_rate": fps,
                         "total_frames": len(images),
-                        "format": 'video/h264-mp4' if format == 'mp4' else format,
+                        "format": 'video/mp4' if format == 'mp4' else (
+                            'video/webm' if format == 'webm' else 
+                            'video/quicktime' if format == 'mov' else 
+                            'video/x-msvideo'  # for avi
+                        ),
                         "workflow": first_image_file,
-                        "fullpath": output_path
+                        "fullpath": output_path,
                     }]
                 }
             }            
@@ -403,16 +406,16 @@ class FSSaveVideo:
         
         # Prepare FFmpeg command
         if format == "mp4":
-            codec = "libx264"
             cmd = [
                 'ffmpeg', '-y',  # Overwrite output
                 '-framerate', str(fps),
                 '-i', os.path.join(frame_dir, 'frame_%05d.png'),
-                '-c:v', codec,
-                '-preset', 'fast',  # Speed/compression trade-off
-                '-crf', str(crf),     # Quality
-                '-pix_fmt', 'yuv420p', # Widely compatible pixel format
-                '-movflags', '+faststart' 
+                '-c:v', 'libx264',  # Use H.264 for web compatibility
+                '-profile:v', 'baseline',  # More compatible profile
+                '-level', '3.0',
+                '-pix_fmt', 'yuv420p',  # Required for browser compatibility
+                '-movflags', '+faststart',  # Web streaming optimization
+                '-crf', str(crf)
             ]
         elif format == "webm":
             codec = "libvpx-vp9"
