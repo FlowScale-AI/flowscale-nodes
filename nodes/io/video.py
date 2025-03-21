@@ -257,9 +257,6 @@ class FSSaveVideo:
                 metadata.add_text(x, json.dumps(extra_pnginfo[x]))
         metadata.add_text("CreationTime", datetime.datetime.now().isoformat(" ")[:19])
         
-        # Save first frame as PNG
-        first_image_file = f"{filename}_{counter:05}.png"
-        first_image_path = os.path.join(full_output_folder, first_image_file)
         
         results = []
         output_files = []
@@ -267,15 +264,6 @@ class FSSaveVideo:
         try:
             # Convert tensor to numpy and then to uint8
             uint8_frames = (images.cpu().numpy() * 255).astype(np.uint8)
-            
-            # Save first frame as PNG
-            first_frame = uint8_frames[0]
-            Image.fromarray(first_frame).save(
-                first_image_path,
-                pnginfo=metadata,
-                compress_level=4,
-            )
-            output_files.append(first_image_path)
             
             # Get dimensions
             frame_count, height, width, channels = uint8_frames.shape
@@ -384,7 +372,6 @@ class FSSaveVideo:
                             'video/quicktime' if format == 'mov' else 
                             'video/x-msvideo'  # for avi
                         ),
-                        "workflow": first_image_file,
                         "fullpath": output_path,
                     }]
                 }
