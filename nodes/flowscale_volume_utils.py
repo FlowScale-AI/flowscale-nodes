@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import httpx
 
@@ -7,6 +8,9 @@ CONTAINER_ID = os.environ.get("CONTAINER_ID")
 ACCESS_TOKEN = os.environ.get("FLOWSCALE_ACCESS_TOKEN")
 TEAM_ID = os.environ.get("FLOWSCALE_TEAM_ID")
 API_URL = os.environ.get("FLOWSCALE_API_URL")
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class SaveModelToFlowscaleVolume:
   """ 
@@ -54,6 +58,7 @@ class SaveModelToFlowscaleVolume:
       raise Exception("No download URL provided")
     
     # Create root folder
+    logger.info(f"Creating root folder in Flowscale volume {VOLUME_ID}...")
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder?access_token={ACCESS_TOKEN}"
     headers = {
       "X-Team": TEAM_ID,
@@ -63,6 +68,9 @@ class SaveModelToFlowscaleVolume:
       "path": "/",
     }
     timeout = httpx.Timeout(30.0, connect=30.0)
+    logger.info(f"URL: {url}")
+    logger.info(f"Headers: {headers}")
+    logger.info(f"Body: {body}")
     try:
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
     except httpx.RequestError as e:
@@ -74,6 +82,7 @@ class SaveModelToFlowscaleVolume:
       raise Exception(f"Failed to create folder in Flowscale volume: {response.text}")
     
     # Add model to volume and fs
+    logger.info(f"Uploading model to Flowscale volume {VOLUME_ID}...")
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload?access_token={ACCESS_TOKEN}"
     headers = {
       "X-Team": TEAM_ID,
@@ -84,7 +93,14 @@ class SaveModelToFlowscaleVolume:
       "upload_type": model_type,
     }
         
-    response = httpx.post(url, headers=headers, json=body, timeout=timeout)
+    try:
+      logger.info(f"URL: {url}")
+      logger.info(f"Headers: {headers}")
+      logger.info(f"Body: {body}")
+      response = httpx.post(url, headers=headers, json=body, timeout=timeout)
+    except httpx.RequestError as e:
+      raise Exception(f"Failed to upload model to Flowscale volume: {e}")
+    
     
     if response.status_code != 200:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
