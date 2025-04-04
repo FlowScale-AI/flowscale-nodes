@@ -63,7 +63,15 @@ class SaveModelToFlowscaleVolume:
       "path": "/",
     }
     timeout = httpx.Timeout(30.0, connect=30.0)
-    httpx.post(url, headers=headers, json=body, timeout=timeout)
+    try:
+      response = httpx.post(url, headers=headers, json=body, timeout=timeout)
+    except httpx.RequestError as e:
+      raise Exception(f"Failed to create folder in Flowscale volume: {e}")
+    if response.status_code == 400:
+      # Folder already exists
+      pass
+    elif response.status_code != 200:
+      raise Exception(f"Failed to create folder in Flowscale volume: {response.text}")
     
     # Add model to volume and fs
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload?access_token={ACCESS_TOKEN}"
