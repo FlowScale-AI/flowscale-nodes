@@ -46,9 +46,9 @@ class SaveModelToFlowscaleVolume:
     civitai_api_key = ""
     hf_api_key = ""
     if source == "huggingface":
-      hf_api_key = api_key
+      hf_api_key = api_key.strip()
     elif source == "civitai":
-      civitai_api_key = api_key
+      civitai_api_key = api_key.strip()
 
     # Create root folder
     logger.info(f"Creating root folder in Flowscale volume {VOLUME_ID}...")
