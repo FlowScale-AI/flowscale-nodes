@@ -24,7 +24,8 @@ class SaveModelToFlowscaleVolume:
       "optional": {
           "huggingface_url": ("STRING", {"multiline": False, "forceInput": True}),
           "s3_url": ("STRING", {"multiline": False, "forceInput": True}),
-          "civitai_url": ("STRING", {"multiline": False, "forceInput": True})
+          "civitai_url": ("STRING", {"multiline": False, "forceInput": True}),
+          "generic_url": ("STRING", {"multiline": False, "forceInput": True}),
       }
     }
     
@@ -34,7 +35,7 @@ class SaveModelToFlowscaleVolume:
   CATEGORY = "FlowScale/Models/Storage"
   OUTPUT_NODE = True
   
-  def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, huggingface_url=None, s3_url=None, civitai_url=None):
+  def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, huggingface_url=None, s3_url=None, civitai_url=None, generic_url=None):
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials not set")
     
@@ -47,6 +48,10 @@ class SaveModelToFlowscaleVolume:
       download_url = s3_url
     elif civitai_url:
       download_url = civitai_url
+    else:
+      download_url = generic_url
+    if not download_url:
+      raise Exception("No download URL provided")
     
     # Create root folder
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder?access_token={ACCESS_TOKEN}"
@@ -57,7 +62,8 @@ class SaveModelToFlowscaleVolume:
       "folder_name": "loras" if model_type == "lora" else model_type,
       "path": "/",
     }
-    httpx.post(url, headers=headers, json=body)
+    timeout = httpx.Timeout(30.0, connect=30.0)
+    httpx.post(url, headers=headers, json=body, timeout=timeout)
     
     # Add model to volume and fs
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload?access_token={ACCESS_TOKEN}"
@@ -70,7 +76,8 @@ class SaveModelToFlowscaleVolume:
       "upload_type": model_type,
     }
         
-    response = httpx.post(url, headers=headers, json=body)
+    response = httpx.post(url, headers=headers, json=body, timeout=timeout)
+    
     if response.status_code != 200:
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
     
