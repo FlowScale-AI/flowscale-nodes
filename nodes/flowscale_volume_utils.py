@@ -23,13 +23,12 @@ class SaveModelToFlowscaleVolume:
       "required": {
           "model_type": (["lora", "controlnet", "vae", "unet", "other"],),
           "model_name": ("STRING", {"multiline": False, "forceInput": True}),
-          "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"})
+          "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"}),
+          "download_url": ("STRING", {"multiline": False, "forceInput": True}),
+          "source": (["huggingface", "s3", "civitai", "generic"],),
       },
       "optional": {
-          "huggingface_url": ("STRING", {"multiline": False, "forceInput": True}),
-          "s3_url": ("STRING", {"multiline": False, "forceInput": True}),
-          "civitai_url": ("STRING", {"multiline": False, "forceInput": True}),
-          "generic_url": ("STRING", {"multiline": False, "forceInput": True}),
+          "api_key": ("STRING", {"multiline": False, "forceInput": True}),
       }
     }
     
@@ -39,24 +38,18 @@ class SaveModelToFlowscaleVolume:
   CATEGORY = "FlowScale/Models/Storage"
   OUTPUT_NODE = True
   
-  def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, huggingface_url=None, s3_url=None, civitai_url=None, generic_url=None):
+  def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, 
+                                       download_url, source, api_key):
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials not set")
     
-    if not any([huggingface_url, s3_url, civitai_url]):
-      raise Exception("No model URL provided")
-    
-    if huggingface_url:
-      download_url = huggingface_url
-    elif s3_url:
-      download_url = s3_url
-    elif civitai_url:
-      download_url = civitai_url
-    else:
-      download_url = generic_url
-    if not download_url:
-      raise Exception("No download URL provided")
-    
+    civitai_api_key = ""
+    hf_api_key = ""
+    if source == "huggingface":
+      hf_api_key = api_key
+    elif source == "civitai":
+      civitai_api_key = api_key
+
     # Create root folder
     logger.info(f"Creating root folder in Flowscale volume {VOLUME_ID}...")
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder?access_token={ACCESS_TOKEN}"
@@ -68,9 +61,6 @@ class SaveModelToFlowscaleVolume:
       "path": "/",
     }
     timeout = httpx.Timeout(30.0, connect=30.0)
-    logger.info(f"URL: {url}")
-    logger.info(f"Headers: {headers}")
-    logger.info(f"Body: {body}")
     try:
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
     except httpx.RequestError as e:
@@ -88,6 +78,9 @@ class SaveModelToFlowscaleVolume:
       "X-Team": TEAM_ID,
     }
     body = {
+      "name": model_name,
+      "civitai_api_key": civitai_api_key,
+      "hf_api_key": hf_api_key,
       "path": path_in_volume,
       "download_url": download_url,
       "upload_type": model_type,
