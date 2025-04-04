@@ -22,12 +22,12 @@ class SaveModelToFlowscaleVolume:
     return {
       "required": {
           "model_type": (["lora", "controlnet", "vae", "unet", "other"],),
-          "model_name": ("STRING", {"multiline": False, "forceInput": True}),
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"}),
           "download_url": ("STRING", {"multiline": False, "forceInput": True}),
           "source": (["huggingface", "s3", "civitai", "generic"],),
       },
       "optional": {
+          "model_name": ("STRING", {"multiline": False, "forceInput": True}),
           "api_key": ("STRING", {"multiline": False, "forceInput": True}),
       }
     }
@@ -38,8 +38,8 @@ class SaveModelToFlowscaleVolume:
   CATEGORY = "FlowScale/Models/Storage"
   OUTPUT_NODE = True
   
-  def upload_model_to_flowscale_volume(self, model_name, model_type, path_in_volume, 
-                                       download_url, source, api_key):
+  def upload_model_to_flowscale_volume(self, model_type, path_in_volume, 
+                                       download_url, source,model_name="", api_key=""):
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials not set")
     
