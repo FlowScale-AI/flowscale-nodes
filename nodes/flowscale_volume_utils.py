@@ -24,7 +24,6 @@ class SaveModelToFlowscaleVolume:
           "model_type": (["lora", "controlnet", "vae", "unet", "other"],),
           "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"}),
           "download_url": ("STRING", {"multiline": False, "forceInput": True}),
-          "source": (["huggingface", "s3", "civitai", "generic"],),
       },
       "optional": {
           "model_name": ("STRING", {"multiline": False, "forceInput": True}),
@@ -39,16 +38,17 @@ class SaveModelToFlowscaleVolume:
   OUTPUT_NODE = True
   
   def upload_model_to_flowscale_volume(self, model_type, path_in_volume, 
-                                       download_url, source,model_name="", api_key=""):
+                                       download_url, model_name="", api_key=""):
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials not set")
     
+    source = "generic"
     civitai_api_key = ""
     hf_api_key = ""
-    if source == "huggingface":
-      hf_api_key = api_key.strip()
-    elif source == "civitai":
-      civitai_api_key = api_key.strip()
+    if "huggingface.co" in download_url:
+      hf_api_key = api_key.strip().rstrip("\n")
+    elif "civitai.com" in download_url:
+      civitai_api_key = api_key.strip().rstrip("\n")
 
     # Create root folder
     logger.info(f"Creating root folder in Flowscale volume {VOLUME_ID}...")
