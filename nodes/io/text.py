@@ -10,7 +10,7 @@ class FSLoadText:
                     "STRING",
                     {"multiline": True, "default": ""},
                 ),
-                "label": ("STRING", {"default": "Input Image"}),
+                "label": ("STRING", {"default": "Input Text"}),
             }
         }
 
@@ -21,7 +21,7 @@ class FSLoadText:
 
     CATEGORY = "FlowScale/Media/Text"
 
-    def run(self, default_value=None, label="Input Image"):
+    def run(self, default_value=None, label="Input Text"):
         print(f"I/O Label: {label}")
         return [default_value]
 
@@ -35,7 +35,7 @@ class FSSaveText:
                 "filename_prefix": ("STRING", {"default": "FlowScale"}),
             },
             "optional": {
-                "label": ("STRING", {"default": "Input Image"}),
+                "label": ("STRING", {"default": "Output Text"}),
             },
         }
 
@@ -47,7 +47,7 @@ class FSSaveText:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
-    def save_text(self, text, filename_prefix="FlowScale", label="Input Image"):
+    def save_text(self, text, filename_prefix="FlowScale", label="Output Text"):
         print(f"I/O Label: {label}")
         import os
 
