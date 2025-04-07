@@ -151,8 +151,8 @@ class SaveModelToFlowscaleVolume:
   
   def upload_model_to_flowscale_volume(self, model_type, path_in_volume, 
                                        download_url, model_name="", api_key=""):
-    # if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
-    #   raise Exception("Flowscale credentials not set")
+    if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
+      raise Exception("Flowscale credentials not set")
     
     civitai_api_key = ""
     hf_api_key = ""
