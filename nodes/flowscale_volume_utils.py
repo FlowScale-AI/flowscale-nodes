@@ -162,7 +162,7 @@ class SaveModelToFlowscaleVolume:
       civitai_api_key = api_key.strip().rstrip("\n")
 
     # Create root folder
-    # self._create_root_folder(model_type)
+    self._create_root_folder(model_type)
     
     # Check if the URL ends with .tar - if so, handle it differently
     if download_url.lower().endswith('.tar'):
