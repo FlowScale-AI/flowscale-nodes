@@ -151,8 +151,8 @@ class SaveModelToFlowscaleVolume:
   
   def upload_model_to_flowscale_volume(self, model_type, path_in_volume, 
                                        download_url, model_name="", api_key=""):
-    if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
-      raise Exception("Flowscale credentials not set")
+    # if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
+    #   raise Exception("Flowscale credentials not set")
     
     civitai_api_key = ""
     hf_api_key = ""
@@ -162,7 +162,7 @@ class SaveModelToFlowscaleVolume:
       civitai_api_key = api_key.strip().rstrip("\n")
 
     # Create root folder
-    self._create_root_folder(model_type)
+    # self._create_root_folder(model_type)
     
     # Check if the URL ends with .tar - if so, handle it differently
     if download_url.lower().endswith('.tar'):
@@ -182,7 +182,7 @@ class SaveModelToFlowscaleVolume:
         uploaded_urls = []
         for file_name, file_path in safetensors_files:
           # Create a unique path for each model
-          model_path = os.path.join(path_in_volume, os.path.splitext(file_name)[0])
+          model_path = path_in_volume
           
           # For now, we'll host the file locally and create a temporary URL
           # In a real scenario, you might use a different approach
