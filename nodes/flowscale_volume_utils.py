@@ -52,8 +52,6 @@ class SaveModelToFlowscaleVolume:
       "folder_name": "loras" if model_type == "lora" else model_type,
       "path": "/",
     }
-    logger.info(body)
-    logger.info(url)
     timeout = httpx.Timeout(30.0, connect=30.0)
     try:
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
