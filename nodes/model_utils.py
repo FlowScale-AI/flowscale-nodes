@@ -28,11 +28,23 @@ class LoadModelFromURL:
   CATEGORY = "FlowScale/Models/Download"
 
   def load_model_from_civitai(self, model_url, path):   
-      if os.path.isdir(path):
-        filename = os.path.basename(model_url)
-        full_path = os.path.join(COMFYUI_MODELS_DIR, path, filename)
+      # Create the target directory if it doesn't exist
+      if os.path.isdir(COMFYUI_MODELS_DIR):
+          target_dir = os.path.join(COMFYUI_MODELS_DIR, path)
+          os.makedirs(target_dir, exist_ok=True)
+          
+          # Extract filename from URL
+          filename = os.path.basename(model_url)
+          # If URL ends with query parameters, extract just the filename part
+          if '?' in filename:
+              filename = filename.split('?')[0]
+          
+          full_path = os.path.join(target_dir, filename)
       else:
-        full_path = path
+          logger.warning(f"COMFYUI_MODELS_DIR '{COMFYUI_MODELS_DIR}' is not a directory, using provided path as is")
+          full_path = path
+
+      logger.info(f"Will save downloaded model to: {full_path}")
 
       if ".huggingface.co" in model_url:
         if not HUGGINGFACE_API_KEY:
