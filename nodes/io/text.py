@@ -50,6 +50,8 @@ class FSSaveText:
     def save_text(self, text, filename_prefix="FlowScale", label="Output Text"):
         print(f"I/O Label: {label}")
         import os
+        if not text:
+            text = ""
 
         random_segment = ''.join(random.choices(string.digits, k=6))
         filename = f"{filename_prefix}_{random_segment}.txt"

@@ -95,7 +95,12 @@ class SaveModelToFlowscaleVolume:
     try:
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
       response_json = response.json()
-      file_id = response_json.get("file_id")
+
+      file_id = response_json.get("data").get("file_id")
+      if not file_id:
+        if len(webhook_url.strip()) > 0:
+          httpx.post(webhook_url, json={"error": "Something went wrong while uploading the model to Flowscale volume"})
+        raise Exception("Something went wrong while uploading the model to Flowscale volume")
     except httpx.RequestError as e:
       if len(webhook_url.strip()) > 0:
         httpx.post(webhook_url, json={"error": str(e)})
