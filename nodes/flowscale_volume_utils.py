@@ -35,8 +35,8 @@ class SaveModelToFlowscaleVolume:
       }
     }
     
-  RETURN_TYPES = ("STRING",)
-  RETURN_NAMES = ("download_url",)
+  RETURN_TYPES = ("STRING", "STRING",)
+  RETURN_NAMES = ("download_url", "file_id",)
   FUNCTION = "upload_model_to_flowscale_volume"
   CATEGORY = "FlowScale/Models/Storage"
   OUTPUT_NODE = True
@@ -52,6 +52,8 @@ class SaveModelToFlowscaleVolume:
       "folder_name": "loras" if model_type == "lora" else model_type,
       "path": "/",
     }
+    logger.info(body)
+    logger.info(url)
     timeout = httpx.Timeout(30.0, connect=30.0)
     try:
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
@@ -59,7 +61,8 @@ class SaveModelToFlowscaleVolume:
       raise Exception(f"Failed to create folder in Flowscale volume: {e}")
     if response.status_code == 400:
       # Folder already exists
-      pass
+      logger.info("Folder already exists in Flowscale volume.")
+      return
     elif response.status_code != 200:
       raise Exception(f"Failed to create folder in Flowscale volume: {response.text}")
       
