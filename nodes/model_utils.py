@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class LoadModelFromURL:
   """
-  Load a model from CivitAI
+  Load a model from URL
   """
   
   @classmethod
@@ -24,10 +24,10 @@ class LoadModelFromURL:
     
   RETURN_TYPES = ("STRING",)
   RETURN_NAMES = ("filepath",)
-  FUNCTION = "load_model_from_civitai"
+  FUNCTION = "load_model_from_url"
   CATEGORY = "FlowScale/Models/Download"
 
-  def load_model_from_civitai(self, model_url, path):   
+  def load_model_from_url(self, model_url, path):   
       # Create the target directory if it doesn't exist
       if os.path.isdir(COMFYUI_MODELS_DIR):
           target_dir = os.path.join(COMFYUI_MODELS_DIR, path)
