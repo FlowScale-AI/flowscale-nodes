@@ -1,5 +1,5 @@
 from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3, UploadImageToS3, UploadMediaToS3FromLink, UploadTextToS3
-from .nodes.model_utils import LoadModelFromCivitAI
+from .nodes.model_utils import LoadModelFromURL
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
 from .nodes.io.text import FSLoadText, FSSaveText
 from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
@@ -23,7 +23,7 @@ NODE_CLASS_MAPPINGS = {
   "UploadModelToPrivateS3": UploadModelToPrivateS3,
   "LoadModelFromPublicS3": LoadModelFromPublicS3,
   "LoadModelFromPrivateS3": LoadModelFromPrivateS3,
-  "LoadModelFromCivitAI": LoadModelFromCivitAI,
+  "LoadModelFromURL": LoadModelFromURL,
   "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
   "WebhookSender": WebhookSender,
   "FileLoaderNode": FileLoaderNode,
@@ -56,7 +56,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "UploadModelToPrivateS3": f"[FS]{FS_NODE_ICON}Upload Model to Private S3",
     "LoadModelFromPublicS3": f"[FS]{FS_NODE_ICON}Load Model from Public S3",
     "LoadModelFromPrivateS3": f"[FS]{FS_NODE_ICON}Load Model to Private S3",
-    "LoadModelFromCivitAI": f"[FS]{FS_NODE_ICON}Load Model from CivitAI",
+    "LoadModelFromURL": f"[FS]{FS_NODE_ICON}Load Model from URL",
     "SaveModelToFlowscaleVolume": f"[FS]{FS_NODE_ICON}Save Model to Flowscale Volume",
     "GithubReadmeExtractor": f"[FS]{FS_NODE_ICON}Extract GitHub Readme",
     "WebhookSender": f"[FS]{FS_NODE_ICON}Send to Webhook",
