@@ -13,6 +13,9 @@ ACCESS_TOKEN = os.environ.get("FLOWSCALE_ACCESS_TOKEN")
 TEAM_ID = os.environ.get("FLOWSCALE_TEAM_ID")
 API_URL = os.environ.get("FLOWSCALE_API_URL")
 
+HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY")
+CIVITAI_API_KEY = os.environ.get("CIVITAI_API_KEY")
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -26,12 +29,13 @@ class SaveModelToFlowscaleVolume:
     return {
       "required": {
           "model_type": (["lora", "controlnet", "vae", "unet", "other"],),
-          "path_in_volume": ("STRING", {"multiline": False, "placeholder": "path/to/model, e.g. loras/my_model"}),
+          "path_in_volume": ("STRING", {"multiline": False, "placeholder": "/path/to/model, e.g. /loras"}),
           "download_url": ("STRING", {"multiline": False, "forceInput": True}),
       },
       "optional": {
-          "model_name": ("STRING", {"multiline": False, "forceInput": True}),
-          "api_key": ("STRING", {"multiline": False, "forceInput": True}),
+          "api_key": ("STRING", {"multiline": False}),
+          "model_name": ("STRING", {"multiline": False}),
+          "webhook_url": ("STRING", {"multiline": False, "forceInput": True}),
       }
     }
     
@@ -63,13 +67,20 @@ class SaveModelToFlowscaleVolume:
     elif response.status_code != 200:
       raise Exception(f"Failed to create folder in Flowscale volume: {response.text}")
       
-  def _upload_single_model(self, model_type, path_in_volume, download_url, model_name, civitai_api_key="", hf_api_key=""):
+  def _upload_single_model(self, model_type, path_in_volume, download_url, model_name, civitai_api_key="", hf_api_key="", webhook_url=""):
     """Upload a single model to the Flowscale volume"""
     logger.info(f"Uploading model to Flowscale volume {VOLUME_ID}...")
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload?access_token={ACCESS_TOKEN}"
     headers = {
       "X-Team": TEAM_ID,
     }
+
+    if len(civitai_api_key.strip()) == 0:
+      civitai_api_key = CIVITAI_API_KEY.strip().rstrip("\n")
+
+    if len(hf_api_key.strip()) == 0:
+      hf_api_key = HUGGINGFACE_API_KEY.strip().rstrip("\n")
+
     body = {
       "name": model_name,
       "civitai_api_key": civitai_api_key,
@@ -77,14 +88,15 @@ class SaveModelToFlowscaleVolume:
       "path": path_in_volume,
       "download_url": download_url,
       "upload_type": model_type,
+      "external_webhook_url": webhook_url,
     }
         
     timeout = httpx.Timeout(30.0, connect=30.0)
+    file_id = None
     try:
-      logger.info(f"URL: {url}")
-      logger.info(f"Headers: {headers}")
-      logger.info(f"Body: {body}")
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
+      response_json = response.json()
+      file_id = response_json.get("file_id")
     except httpx.RequestError as e:
       raise Exception(f"Failed to upload model to Flowscale volume: {e}")
     
@@ -101,7 +113,7 @@ class SaveModelToFlowscaleVolume:
       }
       f.write(json.dumps(data))
     
-    return download_url
+    return download_url, file_id
   
   def _download_file(self, url, api_key=""):
     """Download a file from a URL to a temporary location"""
@@ -150,9 +162,9 @@ class SaveModelToFlowscaleVolume:
       raise Exception(f"Failed to extract tar file: {e}")
   
   def upload_model_to_flowscale_volume(self, model_type, path_in_volume, 
-                                       download_url, model_name="", api_key=""):
+                                       download_url, api_key="", model_name="", webhook_url=""):
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
-      raise Exception("Flowscale credentials not set")
+      raise Exception("Flowscale credentials are missing")
     
     civitai_api_key = ""
     hf_api_key = ""
@@ -193,13 +205,14 @@ class SaveModelToFlowscaleVolume:
           
           # Upload the model
           logger.info(f"Uploading {file_name} to {model_path}...")
-          uploaded_url = self._upload_single_model(
+          uploaded_url, file_id = self._upload_single_model(
             model_type, 
             model_path, 
             file_url, 
             current_model_name, 
             civitai_api_key=civitai_api_key, 
-            hf_api_key=hf_api_key
+            hf_api_key=hf_api_key,
+            webhook_url=webhook_url
           )
           uploaded_urls.append(uploaded_url)
         
@@ -208,7 +221,7 @@ class SaveModelToFlowscaleVolume:
         shutil.rmtree(temp_dir, ignore_errors=True)
         
         # Return the original download URL as a reference
-        return {"ui": {"text": download_url}, "result": (download_url,)}
+        return {"ui": {"text": download_url}, "result": (download_url, file_id)}
         
       except Exception as e:
         # Clean up on error
@@ -217,14 +230,15 @@ class SaveModelToFlowscaleVolume:
         raise e
     else:
       # Process a single model as before
-      url = self._upload_single_model(
+      url, file_id = self._upload_single_model(
         model_type, 
         path_in_volume, 
         download_url, 
         model_name, 
         civitai_api_key=civitai_api_key, 
-        hf_api_key=hf_api_key
+        hf_api_key=hf_api_key,
+        webhook_url=webhook_url
       )
-      return {"ui": {"text": url}, "result": (url,)}
+      return {"ui": {"text": url}, "result": (url, file_id)}
 
 
