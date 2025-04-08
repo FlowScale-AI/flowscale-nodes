@@ -72,10 +72,10 @@ class SaveModelToFlowscaleVolume:
       "X-Team": TEAM_ID,
     }
 
-    if len(civitai_api_key.strip()) == 0:
+    if len(civitai_api_key.strip()) == 0 and CIVITAI_API_KEY:
       civitai_api_key = CIVITAI_API_KEY.strip().rstrip("\n")
 
-    if len(hf_api_key.strip()) == 0:
+    if len(hf_api_key.strip()) == 0 and HUGGINGFACE_API_KEY:
       hf_api_key = HUGGINGFACE_API_KEY.strip().rstrip("\n")
 
     body = {
