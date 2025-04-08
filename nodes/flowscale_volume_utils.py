@@ -41,7 +41,7 @@ class SaveModelToFlowscaleVolume:
   CATEGORY = "FlowScale/Models/Storage"
   OUTPUT_NODE = True
   
-  def _create_root_folder(self, model_type):
+  def _create_root_folder(self, model_type, webhook_url=""):
     """Create a root folder in the Flowscale volume"""
     logger.info(f"Creating root folder in Flowscale volume {VOLUME_ID}...")
     url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder?access_token={ACCESS_TOKEN}"
@@ -56,6 +56,8 @@ class SaveModelToFlowscaleVolume:
     try:
       response = httpx.post(url, headers=headers, json=body, timeout=timeout)
     except httpx.RequestError as e:
+      if len(webhook_url.strip()) > 0:
+        httpx.post(webhook_url, json={"error": str(e)})
       raise Exception(f"Failed to create folder in Flowscale volume: {e}")
     if response.status_code == 400:
       # Folder already exists
@@ -95,9 +97,13 @@ class SaveModelToFlowscaleVolume:
       response_json = response.json()
       file_id = response_json.get("file_id")
     except httpx.RequestError as e:
+      if len(webhook_url.strip()) > 0:
+        httpx.post(webhook_url, json={"error": str(e)})
       raise Exception(f"Failed to upload model to Flowscale volume: {e}")
     
     if response.status_code != 200:
+      if len(webhook_url.strip()) > 0:
+        httpx.post(webhook_url, json={"error": response.text})
       raise Exception(f"Failed to upload model to Flowscale volume: {response.text}")
     
     # Save model info to a file
@@ -117,25 +123,29 @@ class SaveModelToFlowscaleVolume:
     if not all([VOLUME_ID, CONTAINER_ID, API_URL]):
       raise Exception("Flowscale credentials are missing")
     
-    civitai_api_key = ""
-    hf_api_key = ""
-    if "huggingface.co" in download_url:
-      hf_api_key = api_key.strip().rstrip("\n")
-    elif "civitai.com" in download_url:
-      civitai_api_key = api_key.strip().rstrip("\n")
+    try:
+      civitai_api_key = ""
+      hf_api_key = ""
+      if "huggingface.co" in download_url:
+        hf_api_key = api_key.strip().rstrip("\n")
+      elif "civitai.com" in download_url:
+        civitai_api_key = api_key.strip().rstrip("\n")
 
-    # Create root folder
-    self._create_root_folder(model_type)
-      
-    url, file_id = self._upload_single_model(
-      model_type, 
-      path_in_volume, 
-      download_url, 
-      model_name, 
-      civitai_api_key=civitai_api_key, 
-      hf_api_key=hf_api_key,
-      webhook_url=webhook_url
-    )
-    return {"ui": {"text": url}, "result": (url, file_id)}
-
-
+      # Create root folder
+      self._create_root_folder(model_type, webhook_url)
+        
+      url, file_id = self._upload_single_model(
+        model_type, 
+        path_in_volume, 
+        download_url, 
+        model_name, 
+        civitai_api_key=civitai_api_key, 
+        hf_api_key=hf_api_key,
+        webhook_url=webhook_url
+      )
+      return {"ui": {"text": url}, "result": (url, file_id)}
+    except Exception as e:
+      logger.error(f"Error uploading model to Flowscale volume: {e}")
+      if len(webhook_url.strip()) > 0:
+        httpx.post(webhook_url, json={"error": str(e)})
+      return {"ui": {"text": str(e)}, "result": (None, None)}
