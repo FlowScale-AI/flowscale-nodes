@@ -157,7 +157,7 @@ class SaveModelToFlowscaleVolume:
       )
       return {"ui": {"text": url}, "result": (url, file_id)}
     except Exception as e:
-      logger.error(f"Error uploading model to Flowscale volume: {e}")
+      logger.exception(f"Error uploading model to Flowscale volume: {e}")
       if len(webhook_url.strip()) > 0:
         httpx.post(webhook_url, json={"error": str(e)})
       return {"ui": {"text": str(e)}, "result": (None, None)}
