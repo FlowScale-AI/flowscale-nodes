@@ -46,7 +46,7 @@ class LoadModelFromURL:
 
       logger.info(f"Will save downloaded model to: {full_path}")
 
-      if ".huggingface.co" in model_url:
+      if "huggingface.co" in model_url:
         if not HUGGINGFACE_API_KEY:
             raise Exception("HUGGINGFACE_API_KEY is not set. Please set it in the environment variables.")
         cmd = [
@@ -57,7 +57,7 @@ class LoadModelFromURL:
             "--content-disposition",
             "-O", full_path
         ]
-      elif ".civitai.com" in model_url:
+      elif "civitai.com" in model_url:
         if not CIVITAI_API_KEY:
             raise Exception("CIVITAI_API_KEY is not set. Please set it in the environment variables.")
         modified_download_url = model_url + ("&" if "?" in model_url else "?") + "token=" + CIVITAI_API_KEY
