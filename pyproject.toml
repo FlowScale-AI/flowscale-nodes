@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowscale-nodes"
-version = "0.3.15"
+version = "0.3.16"
 description = "FlowScale Nodes for ComfyUI - Enhanced media handling and utility nodes"
 readme = "README.md"
 authors = [

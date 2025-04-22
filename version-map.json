@@ -1,0 +1,12 @@
+{
+    "0.3.16": {
+        "sha": "09a56183dea992ed86500cde81269797e36f6530",
+        "description": "Added nodes for Loading and Saving Integers",
+        "release_date": "2025-04-22"
+    },
+    "0.3.15": {
+        "sha": "0f4e01d7e3bfd775c992831eecc9ca3aaf0314a2",
+        "release_date": "2025-04-11",
+        "description": "Initial release with basic functionality."
+    }
+}
