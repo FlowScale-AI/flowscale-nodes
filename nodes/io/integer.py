@@ -16,8 +16,8 @@ class FSLoadInteger:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("text",)
+    RETURN_TYPES = ("INT",)
+    RETURN_NAMES = ("integer",)
 
     FUNCTION = "run"
 
@@ -49,7 +49,7 @@ class FSSaveInteger:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
-    def save_text(self, integer:int, filename_prefix="FlowScale", label="Output Text"):
+    def save_integer(self, integer:int, filename_prefix="FlowScale", label="Output Text"):
         print(f"I/O Label: {label}")
         import os
         if not integer:
