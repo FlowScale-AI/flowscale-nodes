@@ -1,6 +1,7 @@
 from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3, UploadImageToS3, UploadMediaToS3FromLink, UploadTextToS3
 from .nodes.model_utils import LoadModelFromURL
 from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
+from .nodes.io.integer import FSLoadInteger, FSSaveInteger
 from .nodes.io.text import FSLoadText, FSSaveText
 from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
 from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
@@ -30,6 +31,8 @@ NODE_CLASS_MAPPINGS = {
   "MultiFileLoaderNode": MultiFileLoaderNode,
   "FileExtractorNode": FileExtractorNode,
   "ExtractPropertyNode": ExtractPropertyNode,
+  "FSLoadInteger": FSLoadInteger,
+  "FSSaveInteger": FSSaveInteger,
   "FSLoadText": FSLoadText,
   "FSSaveText": FSSaveText,
   "FSLoadImage": FSLoadImage,
@@ -64,6 +67,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MultiFileLoaderNode": f"[FS]{FS_NODE_ICON}Multi-File Uploader",
     "FileExtractorNode": f"[FS]{FS_NODE_ICON}Extract File",
     "ExtractPropertyNode": f"[FS]{FS_NODE_ICON}Extract Property from JSON",
+    "FSLoadInteger": f"[FS]{FS_NODE_ICON}Load Integer (Input)",
+    "FSSaveInteger": f"[FS]{FS_NODE_ICON}Save Integer (Output)",
     "FSLoadText": f"[FS]{FS_NODE_ICON}Load Text (Input)",
     "FSSaveText": f"[FS]{FS_NODE_ICON}Save Text (Output)",
     "FSLoadImage": f"[FS]{FS_NODE_ICON}Load Image (Input)",
