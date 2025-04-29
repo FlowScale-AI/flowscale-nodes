@@ -64,7 +64,6 @@ class LoadModelFromURL:
             "wget",
             "--progress=dot:mega",
             modified_download_url,
-            "--content-disposition",
             "-O", full_path
         ]
       else:
