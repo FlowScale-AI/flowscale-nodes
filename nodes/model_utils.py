@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 
 HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY")
 CIVITAI_API_KEY = os.environ.get("CIVITAI_API_KEY")
@@ -78,9 +79,13 @@ class LoadModelFromURL:
       logger.info(f"Downloading model from unknown source: {model_url} into {full_path}")
       
       cmd_str = " ".join(cmd)
-      result = os.system(cmd_str)
+      result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      logger.info(f"Command: {cmd_str}")
       
-      if result != 0:
+      if result.returncode != 0:
+          logger.error(f"Error downloading model: {result.stderr.decode()}")
           raise Exception(f"Failed to download model: {model_url}")
       
+      logger.info(f"Model downloaded successfully to: {full_path}")
+      logger.info(f"Filepath returned: {full_path}")
       return (full_path,)
