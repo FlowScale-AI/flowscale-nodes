@@ -54,7 +54,6 @@ class LoadModelFromURL:
             "--header", f"Authorization: Bearer {HUGGINGFACE_API_KEY}",
             "--progress=dot:mega",
             model_url,
-            "--content-disposition",
             "-O", full_path
         ]
       elif "civitai.com" in model_url:
