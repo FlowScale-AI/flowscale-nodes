@@ -72,7 +72,7 @@ class FSSaveText:
                 headers = {
                     "X-API-Key": ORCHESTRATOR_API_KEY,
                 }
-                httpx.post(ORCHESTRATOR_API_URL, json=body, headers=headers)
+                httpx.post(f"{ORCHESTRATOR_API_URL}/api/v1/webhook", json=body, headers=headers)
             except httpx.RequestError as e:
                 print(f"Error fetching text from webhook: {e}")
 
