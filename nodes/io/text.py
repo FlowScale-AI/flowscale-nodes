@@ -10,6 +10,7 @@ class FSLoadText:
                     "STRING",
                     {"multiline": True, "default": ""},
                 ),
+                "webhook_url": ("STRING", {"default": ""}),
                 "label": ("STRING", {"default": "Input Text"}),
             }
         }
@@ -21,8 +22,19 @@ class FSLoadText:
 
     CATEGORY = "FlowScale/Media/Text"
 
-    def run(self, default_value=None, label="Input Text"):
+    def run(self, webhook_url, default_value=None, label="Input Text"):
         print(f"I/O Label: {label}")
+
+        if webhook_url:
+            import httpx
+            try:
+                body = {
+                    "text": default_value,
+                }
+                httpx.post(webhook_url, json=body)
+            except httpx.RequestError as e:
+                print(f"Error fetching text from webhook: {e}")
+                return [default_value]
         return [default_value]
 
 
