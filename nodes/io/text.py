@@ -1,5 +1,9 @@
 import random
 import string
+import os
+
+ORCHESTRATOR_API_URL = os.environ.get("ORCHESTRATOR_API_URL")
+ORCHESTRATOR_API_KEY = os.environ.get("ORCHESTRATOR_API_KEY")
 
 class FSLoadText:
     @classmethod
@@ -10,7 +14,6 @@ class FSLoadText:
                     "STRING",
                     {"multiline": True, "default": ""},
                 ),
-                "webhook_url": ("STRING", {"default": ""}),
                 "label": ("STRING", {"default": "Input Text"}),
             }
         }
@@ -22,19 +25,9 @@ class FSLoadText:
 
     CATEGORY = "FlowScale/Media/Text"
 
-    def run(self, webhook_url, default_value=None, label="Input Text"):
+    def run(self, default_value=None, label="Input Text"):
         print(f"I/O Label: {label}")
 
-        if webhook_url:
-            import httpx
-            try:
-                body = {
-                    "text": default_value,
-                }
-                httpx.post(webhook_url, json=body)
-            except httpx.RequestError as e:
-                print(f"Error fetching text from webhook: {e}")
-                return [default_value]
         return [default_value]
 
 
@@ -67,6 +60,21 @@ class FSSaveText:
 
         random_segment = ''.join(random.choices(string.digits, k=6))
         filename = f"{filename_prefix}_{random_segment}.txt"
+
+        if ORCHESTRATOR_API_URL:
+            import httpx
+            try:
+                body = {
+                    "type": "text",
+                    "content": text,
+                    "filename": filename,
+                }
+                headers = {
+                    "X-API-Key": ORCHESTRATOR_API_KEY,
+                }
+                httpx.post(ORCHESTRATOR_API_URL, json=body, headers=headers)
+            except httpx.RequestError as e:
+                print(f"Error fetching text from webhook: {e}")
 
         output_dir = os.path.join(os.getcwd(), "output")
         os.makedirs(output_dir, exist_ok=True)
