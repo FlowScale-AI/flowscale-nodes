@@ -67,7 +67,7 @@ class FSSaveText:
                 body = {
                     "type": "text",
                     "content": text,
-                    "filename": filename,
+                    "filename_prefix": filename_prefix,
                 }
                 headers = {
                     "X-API-Key": ORCHESTRATOR_API_KEY,
