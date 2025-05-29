@@ -11,6 +11,7 @@ import aiofiles
 import boto3
 import shutil
 import folder_paths
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,6 +19,33 @@ logger = logging.getLogger(__name__)
 mimetypes.add_type('image/webp', '.webp')
 mimetypes.add_type('audio/mp3', '.mp3')
 mimetypes.add_type('audio/wav', '.wav')
+
+# File cache for recently accessed files
+_file_cache = {}
+_cache_max_age = 300  # 5 minutes
+
+def is_file_recently_accessed(file_path, max_age=300):
+    """Check if file was recently accessed and is likely complete."""
+    current_time = time.time()
+    if file_path in _file_cache:
+        cache_entry = _file_cache[file_path]
+        if current_time - cache_entry['timestamp'] < max_age:
+            return cache_entry['size'] == os.path.getsize(file_path)
+    return False
+
+def cache_file_access(file_path):
+    """Cache file access information."""
+    _file_cache[file_path] = {
+        'timestamp': time.time(),
+        'size': os.path.getsize(file_path)
+    }
+    
+    # Clean old cache entries
+    current_time = time.time()
+    expired_keys = [k for k, v in _file_cache.items() 
+                    if current_time - v['timestamp'] > _cache_max_age * 2]
+    for key in expired_keys:
+        del _file_cache[key]
 
 @PromptServer.instance.routes.post("/flowscale/io/upload")
 async def upload_media(request):
@@ -294,11 +322,21 @@ async def search_file(request):
     
     video_extensions = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"]
     model_extensions = [".safetensors", ".pth", ".ckpt", ".onnx", ".pb", ".h5", ".pt", ".pkl"]
-    max_delay = 30 if file_extension.lower() in video_extensions or file_extension.lower() in model_extensions else 5
-    if not is_file_ready(absolute_filepath, max_delay):
-        return web.json_response({
-            "error": "File not ready yet."
-        }, status=404, content_type='application/json')
+    
+    # For video files, check cache first
+    if file_extension.lower() in video_extensions and is_file_recently_accessed(absolute_filepath):
+        cache_file_access(absolute_filepath)  # Update cache timestamp
+        logger.info(f"Video file served from cache: {absolute_filepath}")
+    else:
+        max_delay = 30 if file_extension.lower() in video_extensions or file_extension.lower() in model_extensions else 5
+        if not await is_file_ready_async(absolute_filepath, max_delay):
+            return web.json_response({
+                "error": "File not ready yet."
+            }, status=404, content_type='application/json')
+        
+        # Cache successful file access
+        if file_extension.lower() in video_extensions:
+            cache_file_access(absolute_filepath)
     
     mime_type, _ = mimetypes.guess_type(absolute_filepath)
     if mime_type is None:
@@ -316,10 +354,28 @@ async def search_file(request):
         
     else:
         try:
-            return web.FileResponse(path=absolute_filepath, headers={
-                'Content-Type': mime_type,
-                'Content-Disposition': f'attachment; filename="{os.path.basename(absolute_filepath)}"'
-            })
+            # For video files, add support for range requests (partial content)
+            if file_extension.lower() in video_extensions:
+                # Check if this is a range request
+                range_header = request.headers.get('Range')
+                if range_header:
+                    return await handle_range_request(request, absolute_filepath, range_header, mime_type)
+                else:
+                    # Return file with Accept-Ranges header to enable progressive download
+                    return web.FileResponse(
+                        path=absolute_filepath, 
+                        headers={
+                            'Content-Type': mime_type,
+                            'Content-Disposition': f'attachment; filename="{os.path.basename(absolute_filepath)}"',
+                            'Accept-Ranges': 'bytes',
+                            'Cache-Control': 'public, max-age=3600'  # Cache for 1 hour
+                        }
+                    )
+            else:
+                return web.FileResponse(path=absolute_filepath, headers={
+                    'Content-Type': mime_type,
+                    'Content-Disposition': f'attachment; filename="{os.path.basename(absolute_filepath)}"'
+                })
         except Exception as e:
             logger.error(f"Error reading file: {e}")
             return web.json_response({
@@ -482,22 +538,62 @@ async def reboot_server(request):
             "error": f"Error rebooting server: {str(e)}"
         }, status=500, headers=headers)
 
-def is_file_ready(file_path, max_delay=15):
-    check_interval = 5
+async def is_file_ready_async(file_path, max_delay=15, check_interval=1):
+    """
+    Async version with shorter check intervals and optimizations for video files.
+    """
     elapsed_time = 0
     stat_info = os.stat(file_path)
     size_initial = stat_info.st_size
-
-    while elapsed_time < max_delay:
-        time.sleep(check_interval)
-        elapsed_time += check_interval
-        stat_info = os.stat(file_path)
-        size_current = stat_info.st_size
-
-        if size_current != size_initial:
-            return False
+    last_modification = stat_info.st_mtime
     
-    return True
+    # For video files, we can be less conservative if file is reasonably sized
+    file_extension = os.path.splitext(file_path)[1].lower()
+    video_extensions = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"]
+    
+    # If it's a video file and already has substantial size, reduce wait time
+    if file_extension in video_extensions and size_initial > 1024 * 1024:  # > 1MB
+        max_delay = min(max_delay, 10)  # Cap at 10 seconds for larger video files
+        check_interval = 0.5  # Check more frequently
+    
+    stable_count = 0  # Count how many consecutive checks show stable file
+    required_stable_checks = 3 if file_extension in video_extensions else 2
+    
+    while elapsed_time < max_delay:
+        await asyncio.sleep(check_interval)
+        elapsed_time += check_interval
+        
+        try:
+            stat_info = os.stat(file_path)
+            size_current = stat_info.st_size
+            current_modification = stat_info.st_mtime
+            
+            # Check if file is stable (size and modification time unchanged)
+            if size_current == size_initial and current_modification == last_modification:
+                stable_count += 1
+                if stable_count >= required_stable_checks:
+                    return True
+            else:
+                stable_count = 0
+                size_initial = size_current
+                last_modification = current_modification
+                
+        except OSError:
+            # File might be temporarily locked, continue checking
+            continue
+    
+    # After max_delay, return True if file exists and has size > 0
+    try:
+        stat_info = os.stat(file_path)
+        return stat_info.st_size > 0
+    except OSError:
+        return False
+
+def is_file_ready(file_path, max_delay=15):
+    """
+    Synchronous fallback version for compatibility.
+    """
+    return asyncio.run(is_file_ready_async(file_path, max_delay))
 
 @PromptServer.instance.routes.post("/upload/video")
 async def upload_video(request):
@@ -540,3 +636,58 @@ async def get_video_files(request):
         except Exception as e:
             logger.error(f"Error getting video files: {e}")
             return web.Response(status=500, text=str(e))
+
+async def handle_range_request(request, file_path, range_header, mime_type):
+    """
+    Handle HTTP range requests for partial content delivery (used for video streaming).
+    """
+    try:
+        file_size = os.path.getsize(file_path)
+        
+        # Parse range header (e.g., "bytes=0-1023")
+        range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
+        if not range_match:
+            return web.Response(status=416)  # Range Not Satisfiable
+        
+        start = int(range_match.group(1))
+        end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
+        
+        # Validate range
+        if start >= file_size or end >= file_size or start > end:
+            return web.Response(status=416)
+        
+        content_length = end - start + 1
+        
+        # Create streaming response
+        response = web.StreamResponse(
+            status=206,  # Partial Content
+            headers={
+                'Content-Type': mime_type,
+                'Content-Range': f'bytes {start}-{end}/{file_size}',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(content_length),
+                'Cache-Control': 'public, max-age=3600'
+            }
+        )
+        
+        await response.prepare(request)
+        
+        # Stream the requested range
+        with open(file_path, 'rb') as f:
+            f.seek(start)
+            remaining = content_length
+            chunk_size = 8192  # 8KB chunks
+            
+            while remaining > 0:
+                chunk = f.read(min(chunk_size, remaining))
+                if not chunk:
+                    break
+                await response.write(chunk)
+                remaining -= len(chunk)
+        
+        await response.write_eof()
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error handling range request: {e}")
+        return web.Response(status=500)
