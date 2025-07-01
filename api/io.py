@@ -24,6 +24,9 @@ mimetypes.add_type('audio/wav', '.wav')
 _file_cache = {}
 _cache_max_age = 300  # 5 minutes
 
+CHUNK_SIZE = 8192  # 8KB chunks for memory efficiency
+MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB limit
+
 def is_file_recently_accessed(file_path, max_age=300):
     """Check if file was recently accessed and is likely complete."""
     current_time = time.time()
@@ -46,6 +49,29 @@ def cache_file_access(file_path):
                     if current_time - v['timestamp'] > _cache_max_age * 2]
     for key in expired_keys:
         del _file_cache[key]
+
+async def optimized_file_upload(field, file_path):
+    """
+    Optimized file upload with memory-efficient chunked processing
+    """
+    size = 0
+    async with aiofiles.open(file_path, 'wb') as f:
+        while True:
+            chunk = await field.read_chunk(CHUNK_SIZE)
+            if not chunk:
+                break
+            size += len(chunk)
+            
+            # Check file size limit
+            if size > MAX_FILE_SIZE:
+                # Clean up partial file
+                await f.close()
+                os.remove(file_path)
+                raise ValueError(f"File size exceeds {MAX_FILE_SIZE // (1024*1024)}MB limit")
+            
+            await f.write(chunk)
+    
+    return size
 
 @PromptServer.instance.routes.post("/flowscale/io/upload")
 async def upload_media(request):
@@ -85,15 +111,11 @@ async def upload_media(request):
         os.makedirs(media_directory, exist_ok=True)
 
         file_path = os.path.join(media_directory, filename)
-        size = 0
 
-        async with aiofiles.open(file_path, 'wb') as f:
-            while True:
-                chunk = await field.read_chunk()
-                if not chunk:
-                    break
-                size += len(chunk)
-                await f.write(chunk)
+        try:
+            size = await optimized_file_upload(field, file_path)
+        except ValueError as e:
+            return web.json_response({'error': str(e)}, status=413, headers=headers)
 
         # Determine the file type for the response
         file_type = 'image'
@@ -164,13 +186,7 @@ async def upload_batch(request):
                 file_path = os.path.join(path, filename)
                 size = 0
                 
-                async with aiofiles.open(file_path, 'wb') as f:
-                    while True:
-                        chunk = await field.read_chunk()
-                        if not chunk:
-                            break
-                        size += len(chunk)
-                        await f.write(chunk)
+                size = await optimized_file_upload(field, file_path)
                         
                 file_infos.append({'filename': filename, 'size': size, 'path': file_path})
             

@@ -6,8 +6,10 @@ import numpy as np
 from PIL import Image
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from boto3.exceptions import S3UploadFailedError
-import folder_paths 
+import folder_paths  # type: ignore
 import httpx
+import concurrent.futures
+from botocore.config import Config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,6 +19,110 @@ AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_S3_SECRET_ACCESS_KEY")
 AWS_REGION = os.environ.get("AWS_S3_REGION", "us-east-1")
 S3_BUCKET_NAME = os.environ.get("AWS_S3_BUCKET_NAME")
 
+# Global S3 client with optimized configuration
+_s3_client_pool = None
+
+def get_optimized_s3_client():
+    """Get an optimized S3 client with connection pooling"""
+    global _s3_client_pool
+    
+    if _s3_client_pool is None:
+        config = Config(
+            region_name=AWS_REGION,
+            retries={'max_attempts': 3, 'mode': 'adaptive'},
+            max_pool_connections=50,
+            use_ssl=True
+        )
+        
+        _s3_client_pool = boto3.client(
+            's3',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            config=config
+        )
+    
+    return _s3_client_pool
+
+def upload_with_progress(file_path, bucket, key, callback=None):
+    """Upload file with progress tracking and multipart for large files"""
+    file_size = os.path.getsize(file_path)
+    
+    # Use multipart upload for files larger than 100MB
+    if file_size > 100 * 1024 * 1024:
+        return upload_large_file_multipart(file_path, bucket, key, callback)
+    else:
+        return upload_small_file(file_path, bucket, key, callback)
+
+def upload_small_file(file_path, bucket, key, callback=None):
+    """Upload small files directly"""
+    s3_client = get_optimized_s3_client()
+    
+    def progress_callback(bytes_transferred):
+        if callback:
+            callback(bytes_transferred)
+    
+    s3_client.upload_file(
+        file_path, bucket, key,
+        Callback=progress_callback
+    )
+
+def upload_large_file_multipart(file_path, bucket, key, callback=None):
+    """Upload large files using multipart upload"""
+    s3_client = get_optimized_s3_client()
+    
+    # Initiate multipart upload
+    response = s3_client.create_multipart_upload(Bucket=bucket, Key=key)
+    upload_id = response['UploadId']
+    
+    try:
+        parts = []
+        file_size = os.path.getsize(file_path)
+        chunk_size = 10 * 1024 * 1024  # 10MB chunks
+        part_number = 1
+        bytes_transferred = 0
+        
+        with open(file_path, 'rb') as f:
+            while True:
+                data = f.read(chunk_size)
+                if not data:
+                    break
+                
+                # Upload part
+                response = s3_client.upload_part(
+                    Bucket=bucket,
+                    Key=key,
+                    PartNumber=part_number,
+                    UploadId=upload_id,
+                    Body=data
+                )
+                
+                parts.append({
+                    'ETag': response['ETag'],
+                    'PartNumber': part_number
+                })
+                
+                bytes_transferred += len(data)
+                if callback:
+                    callback(bytes_transferred)
+                
+                part_number += 1
+        
+        # Complete multipart upload
+        s3_client.complete_multipart_upload(
+            Bucket=bucket,
+            Key=key,
+            UploadId=upload_id,
+            MultipartUpload={'Parts': parts}
+        )
+        
+    except Exception as e:
+        # Abort multipart upload on error
+        s3_client.abort_multipart_upload(
+            Bucket=bucket,
+            Key=key,
+            UploadId=upload_id
+        )
+        raise e
 
 class UploadModelToS3:
   """
@@ -71,7 +177,7 @@ class UploadModelToS3:
       s3_key = os.path.join("models", CONTAINER_ID, os.path.basename(absolute_filepath))
     
     try:
-      s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
+      upload_with_progress(absolute_filepath, S3_BUCKET_NAME, s3_key)
       download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
       return (download_url, model_name,)
     except Exception as e:
@@ -147,7 +253,7 @@ class UploadModelToPublicS3:
         
       s3_key = os.path.join("models", os.path.basename(absolute_filepath))    
     try:
-      s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
+      upload_with_progress(absolute_filepath, S3_BUCKET_NAME, s3_key)
       download_url = f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
       return (download_url, model_name,)
     except Exception as e:
@@ -221,7 +327,7 @@ class UploadModelToPrivateS3:
           s3_key = os.path.join("models", os.path.basename(absolute_filepath))
 
         try:
-          s3_client.upload_file(absolute_filepath, S3_BUCKET_NAME, s3_key)
+          upload_with_progress(absolute_filepath, S3_BUCKET_NAME, s3_key)
           return (s3_key, )
         except Exception as e:
           raise Exception(f"Failed to upload model to S3: {str(e)}")

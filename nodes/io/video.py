@@ -394,44 +394,54 @@ class FSSaveVideo:
         # Quality 95 -> CRF 15, Quality 0 -> CRF 51
         crf = max(0, min(51, int(51 - (quality / 100.0 * 36))))
         
-        # Prepare FFmpeg command
+        # Prepare FFmpeg command with performance optimizations
         if format == "mp4":
             cmd = [
                 'ffmpeg', '-y',  # Overwrite output
+                '-hwaccel', 'auto',  # Try hardware acceleration
                 '-framerate', str(fps),
                 '-i', os.path.join(frame_dir, 'frame_%05d.png'),
                 '-c:v', 'libx264',  # Use H.264 for web compatibility
+                '-preset', 'medium',  # Balance between speed and compression
                 '-profile:v', 'baseline',  # More compatible profile
                 '-level', '3.0',
                 '-pix_fmt', 'yuv420p',  # Required for browser compatibility
                 '-movflags', '+faststart',  # Web streaming optimization
-                '-crf', str(crf)
+                '-crf', str(crf),
+                '-threads', '0',  # Use all available CPU cores
+                '-tune', 'stillimage'  # Optimize for frame sequences
             ]
         elif format == "webm":
-            codec = "libvpx-vp9"
             cmd = [
                 'ffmpeg', '-y',
+                '-hwaccel', 'auto',
                 '-framerate', str(fps),
                 '-i', os.path.join(frame_dir, 'frame_%05d.png'),
-                '-c:v', codec,
+                '-c:v', 'libvpx-vp9',
                 '-crf', '30',
                 '-b:v', '0',
-                '-pix_fmt', 'yuv420p'
+                '-pix_fmt', 'yuv420p',
+                '-threads', '0',
+                '-speed', '2',  # Faster encoding
+                '-tile-columns', '6',
+                '-frame-parallel', '1'
             ]
         else:  # avi, mov, etc.
             codec = "mpeg4" if format == "avi" else "h264"
             cmd = [
                 'ffmpeg', '-y',
+                '-hwaccel', 'auto',
                 '-framerate', str(fps),
                 '-i', os.path.join(frame_dir, 'frame_%05d.png'),
                 '-c:v', codec,
-                '-q:v', str(int(31 - (quality / 100.0 * 30)))  # Quality parameter
+                '-q:v', str(int(31 - (quality / 100.0 * 30))),  # Quality parameter
+                '-threads', '0'
             ]
         
         # Output file
         cmd.append(output_path)
         
-        logger.info(f"Running FFmpeg: {' '.join(cmd)}")
+        logger.info(f"Running optimized FFmpeg: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         
         # Verify the output exists

@@ -235,6 +235,127 @@ function createFileListPreview(node, fileList) {
     node.appendChild(container);
 }
 
+// Performance optimizations for flowscale.core.js
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+let fileListCache = new Map();
+let uploadQueue = [];
+let isUploading = false;
+
+// Debounced file list fetching
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Cached file list retrieval
+async function getCachedFileList(directory, fileType) {
+    const cacheKey = `${directory}-${fileType}`;
+    const cached = fileListCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+    
+    try {
+        const res = await api.fetchApi(`/flowscale/io/list?directory=${directory}`);
+        if (res.status === 200) {
+            const data = await res.json();
+            let filteredFiles;
+            
+            if (fileType === 'video') {
+                filteredFiles = data.directory_contents.filter(file => 
+                    /\.(mp4|webm|gif|mov|avi|mkv)$/i.test(file)
+                );
+            } else if (fileType === 'audio') {
+                filteredFiles = data.directory_contents.filter(file => 
+                    /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(file)
+                );
+            } else {
+                filteredFiles = data.directory_contents;
+            }
+            
+            fileListCache.set(cacheKey, {
+                data: filteredFiles,
+                timestamp: Date.now()
+            });
+            
+            return filteredFiles;
+        }
+    } catch (error) {
+        console.error(`Error fetching ${fileType} files:`, error);
+    }
+    return [];
+}
+
+// Optimized batch upload with queue management
+async function uploadFilesOptimized(files) {
+    // Add files to upload queue
+    const filePromises = Array.from(files).map(file => ({
+        file,
+        promise: null
+    }));
+    
+    uploadQueue.push(...filePromises);
+    
+    if (isUploading) {
+        return; // Already processing uploads
+    }
+    
+    isUploading = true;
+    const uploadedFiles = [];
+    const MAX_CONCURRENT = 3; // Limit concurrent uploads
+    
+    try {
+        // Process uploads in batches
+        for (let i = 0; i < uploadQueue.length; i += MAX_CONCURRENT) {
+            const batch = uploadQueue.slice(i, i + MAX_CONCURRENT);
+            
+            const batchResults = await Promise.allSettled(
+                batch.map(async ({ file }) => {
+                    const body = new FormData();
+                    body.append("video", file);
+                    
+                    const resp = await api.fetchApi("/flowscale/io/upload", {
+                        method: "POST",
+                        body: body
+                    });
+                    
+                    if (resp.status === 200) {
+                        const data = await resp.json();
+                        return `input/${data.filename}`;
+                    } else {
+                        throw new Error(`Upload failed: ${resp.status}`);
+                    }
+                })
+            );
+            
+            // Collect successful uploads
+            batchResults.forEach((result, index) => {
+                if (result.status === 'fulfilled') {
+                    uploadedFiles.push(result.value);
+                } else {
+                    console.error(`Upload failed for ${batch[index].file.name}:`, result.reason);
+                }
+            });
+        }
+        
+        // Clear cache after successful uploads
+        fileListCache.clear();
+        
+        return uploadedFiles;
+    } finally {
+        uploadQueue.length = 0;
+        isUploading = false;
+    }
+}
+
 async function uploadVideo(file) {
     try {
         // Wrap file in formdata so it includes filename
@@ -530,7 +651,7 @@ function addMultiFileUploadFeature(nodeType, nodeData) {
             
             try {
                 // Upload files and get their paths
-                const uploadedPaths = await uploadFiles(Array.from(fileInput.files));
+                const uploadedPaths = await uploadFilesOptimized(Array.from(fileInput.files));
                 
                 // Get the file_list widget
                 const fileListWidget = this.widgets.find(w => w.name === "file_list");
