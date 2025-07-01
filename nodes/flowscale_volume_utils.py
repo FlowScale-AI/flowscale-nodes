@@ -44,9 +44,10 @@ class SaveModelToFlowscaleVolume:
   def _create_root_folder(self, model_type, webhook_url=""):
     """Create a root folder in the Flowscale volume"""
     logger.info(f"Creating root folder in Flowscale volume {VOLUME_ID}...")
-    url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder?access_token={ACCESS_TOKEN}"
+    url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/folder"
     headers = {
       "X-Team": TEAM_ID,
+      "Authorization": f"Bearer {ACCESS_TOKEN}",
     }
     body = {
       "folder_name": "loras" if model_type == "lora" else model_type,
@@ -69,9 +70,10 @@ class SaveModelToFlowscaleVolume:
   def _upload_single_model(self, model_type, path_in_volume, download_url, model_name, civitai_api_key="", hf_api_key="", webhook_url=""):
     """Upload a single model to the Flowscale volume"""
     logger.info(f"Uploading model to Flowscale volume {VOLUME_ID}...")
-    url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload?access_token={ACCESS_TOKEN}"
+    url = f"{API_URL}/api/v1/volume/{VOLUME_ID}/upload"
     headers = {
       "X-Team": TEAM_ID,
+      "Authorization": f"Bearer {ACCESS_TOKEN}",
     }
 
     if len(civitai_api_key.strip()) == 0 and CIVITAI_API_KEY:
@@ -116,8 +118,7 @@ class SaveModelToFlowscaleVolume:
     if response.status_code != 200:
       response_json = response.json()
       if len(webhook_url.strip()) > 0:
-        httpx.post(webhook_url, json={"error": json.dumps(response_json
-        ).get("data")})
+        httpx.post(webhook_url, json={"error": response_json.get("data")})
       raise Exception(f"Failed to upload model to Flowscale volume: {response_json.get('data')}")
     
     # Save model info to a file
