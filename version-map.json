@@ -1,4 +1,9 @@
 {
+    "0.4.0": {
+        "sha": "6d0f0450d5c3f3180b8b75c6b7a4d6c502261eff",
+        "description": "Added nodes for Loading LoRA, and more improvements",
+        "release_date": "2025-07-02"
+    },
     "0.3.16": {
         "sha": "09a56183dea992ed86500cde81269797e36f6530",
         "description": "Added nodes for Loading and Saving Integers",
