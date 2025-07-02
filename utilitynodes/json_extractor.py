@@ -1,5 +1,6 @@
 import json
 
+
 class ExtractPropertyNode:
     """
     A ComfyUI node to:
@@ -13,11 +14,11 @@ class ExtractPropertyNode:
         return {
             "required": {
                 "json_data": ("STRING", {"multiline": True}),  # The raw JSON string
-                "property_key": ("STRING", {}),               # The key to extract
+                "property_key": ("STRING", {}),  # The key to extract
             },
             "optional": {
-                "silent_errors": ("BOOLEAN", ),               # Toggle quiet/fail-hard mode
-            }
+                "silent_errors": ("BOOLEAN",),  # Toggle quiet/fail-hard mode
+            },
         }
 
     RETURN_TYPES = ("STRING",)
@@ -45,18 +46,18 @@ class ExtractPropertyNode:
         except Exception as e:
             if silent_errors:
                 return (f"Failed to parse JSON: {e}",)
-            raise ValueError(f"Failed to parse JSON: {e}")
+            raise ValueError(f"Failed to parse JSON: {e}") from e
 
         # 3. Extract the property
         try:
             value = parsed_json[property_key]
             # Convert anything to string for a consistent return
             return (str(value),)
-        except KeyError:
+        except KeyError as e:
             if silent_errors:
                 return (f"Property '{property_key}' not found in JSON.",)
-            raise ValueError(f"Property '{property_key}' not found in JSON.")
+            raise ValueError(f"Property '{property_key}' not found in JSON.") from e
         except Exception as e:
             if silent_errors:
                 return (f"Unexpected error extracting property: {e}",)
-            raise ValueError(f"Unexpected error extracting property: {e}")
+            raise ValueError(f"Unexpected error extracting property: {e}") from e

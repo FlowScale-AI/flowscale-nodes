@@ -1,6 +1,7 @@
 import random
 import string
 
+
 class FSLoadInteger:
     @classmethod
     def INPUT_TYPES(s):
@@ -13,7 +14,7 @@ class FSLoadInteger:
             },
             "optional": {
                 "label": ("STRING", {"default": "Input Integer"}),
-            }
+            },
         }
 
     RETURN_TYPES = ("INT",)
@@ -49,14 +50,15 @@ class FSSaveInteger:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
-    def save_integer(self, integer:int, filename_prefix="FlowScale", label="Output Text"):
+    def save_integer(self, integer: int, filename_prefix="FlowScale", label="Output Text"):
         print(f"I/O Label: {label}")
         import os
+
         if not integer:
             integer = 0
-        
+
         text = str(integer)
-        random_segment = ''.join(random.choices(string.digits, k=6))
+        random_segment = "".join(random.choices(string.digits, k=6))
         filename = f"{filename_prefix}_{random_segment}.txt"
 
         output_dir = os.path.join(os.getcwd(), "output")
@@ -65,8 +67,7 @@ class FSSaveInteger:
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(text)
-            
-        print(f"Preview: {text}")
-        
-        return ()
 
+        print(f"Preview: {text}")
+
+        return ()

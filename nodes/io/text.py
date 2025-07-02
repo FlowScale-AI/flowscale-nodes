@@ -1,9 +1,10 @@
+import os
 import random
 import string
-import os
 
 ORCHESTRATOR_API_URL = os.environ.get("ORCHESTRATOR_API_URL")
 ORCHESTRATOR_API_KEY = os.environ.get("ORCHESTRATOR_API_KEY")
+
 
 class FSLoadText:
     @classmethod
@@ -55,23 +56,23 @@ class FSSaveText:
     def save_text(self, text, filename_prefix="FlowScale", label="Output Text"):
         print(f"I/O Label: {label}")
         import os
+
         if not text:
             text = ""
 
-        random_segment = ''.join(random.choices(string.digits, k=6))
+        random_segment = "".join(random.choices(string.digits, k=6))
         filename = f"{filename_prefix}_{random_segment}.txt"
 
         if ORCHESTRATOR_API_URL and ORCHESTRATOR_API_KEY:
             import httpx
+
             try:
                 body = {
                     "type": "text",
                     "content": text,
                     "filename_prefix": filename_prefix,
                 }
-                headers = {
-                    "X-API-Key": ORCHESTRATOR_API_KEY
-                }
+                headers = {"X-API-Key": ORCHESTRATOR_API_KEY}
                 httpx.post(f"{ORCHESTRATOR_API_URL}/api/v1/webhook", json=body, headers=headers)
             except httpx.RequestError as e:
                 print(f"Error fetching text from webhook: {e}")
@@ -82,8 +83,7 @@ class FSSaveText:
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(text)
-            
-        print(f"Preview: {text}")
-        
-        return ()
 
+        print(f"Preview: {text}")
+
+        return ()

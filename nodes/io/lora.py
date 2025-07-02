@@ -1,7 +1,8 @@
-import folder_paths # type: ignore
-import httpx
 import os
 import uuid
+
+import folder_paths  # type: ignore
+import httpx
 
 
 class AnyType(str):
@@ -67,10 +68,12 @@ class FSLoadLoRA:
                 headers = {"User-Agent": "Mozilla/5.0"}
                 if auth_token:
                     headers["Authorization"] = f"Bearer {auth_token}"
-                
+
                 # Use httpx with timeout and better error handling
                 timeout = httpx.Timeout(300.0, connect=30.0)  # 5 min download, 30s connect
-                with httpx.stream("GET", lora_url, headers=headers, follow_redirects=True, timeout=timeout) as response:
+                with httpx.stream(
+                    "GET", lora_url, headers=headers, follow_redirects=True, timeout=timeout
+                ) as response:
                     response.raise_for_status()  # Raise exception for HTTP errors
                     with open(destination_path, "wb") as out_file:
                         for chunk in response.iter_bytes(chunk_size=8192):

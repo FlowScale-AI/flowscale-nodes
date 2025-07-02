@@ -1,53 +1,70 @@
-from .nodes.s3_utils import UploadModelToS3, UploadModelToPublicS3, UploadModelToPrivateS3, LoadModelFromPublicS3, LoadModelFromPrivateS3, UploadImageToS3, UploadMediaToS3FromLink, UploadTextToS3
-from .nodes.model_utils import LoadModelFromURL
-from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
-from .nodes.io.integer import FSLoadInteger, FSSaveInteger
-from .nodes.io.text import FSLoadText, FSSaveText
-from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
-from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
-from .nodes.io.audio import FSLoadAudio, FSLoadAudioFromURL, FSSaveAudio, FSProcessAudio, FSCombineAudio
-from .utilitynodes.webhook import WebhookSender
-from .nodes.github_readme_extractor import GitHubReadmeExtractor
-from .utilitynodes.fileloader import FileLoaderNode
-from .utilitynodes.multifileloader import MultiFileLoaderNode
-from .utilitynodes.file_extractor import FileExtractorNode
-from .utilitynodes.json_extractor import ExtractPropertyNode
-from .utilitynodes.time_utils import FSDelay
 from .constants import FS_NODE_ICON
+from .nodes.flowscale_volume_utils import SaveModelToFlowscaleVolume
+from .nodes.github_readme_extractor import GitHubReadmeExtractor
+from .nodes.io.audio import (
+    FSCombineAudio,
+    FSLoadAudio,
+    FSLoadAudioFromURL,
+    FSProcessAudio,
+    FSSaveAudio,
+)
+from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
+from .nodes.io.integer import FSLoadInteger, FSSaveInteger
+from .nodes.io.lora import FSLoadLoRA
+from .nodes.io.text import FSLoadText, FSSaveText
+from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
+from .nodes.model_utils import LoadModelFromURL
+from .nodes.s3_utils import (
+    LoadModelFromPrivateS3,
+    LoadModelFromPublicS3,
+    UploadImageToS3,
+    UploadMediaToS3FromLink,
+    UploadModelToPrivateS3,
+    UploadModelToPublicS3,
+    UploadModelToS3,
+    UploadTextToS3,
+)
+from .utilitynodes.file_extractor import FileExtractorNode
+from .utilitynodes.fileloader import FileLoaderNode
+from .utilitynodes.json_extractor import ExtractPropertyNode
+from .utilitynodes.multifileloader import MultiFileLoaderNode
+from .utilitynodes.time_utils import FSDelay
+from .utilitynodes.webhook import WebhookSender
 
-NODE_CLASS_MAPPINGS = { 
-  "UploadModelToS3": UploadModelToS3,
-  "UploadImageToS3": UploadImageToS3,
-  "UploadMediaToS3FromLink": UploadMediaToS3FromLink,
-  "UploadTextToS3": UploadTextToS3,
-  "UploadModelToPublicS3": UploadModelToPublicS3,
-  "UploadModelToPrivateS3": UploadModelToPrivateS3,
-  "LoadModelFromPublicS3": LoadModelFromPublicS3,
-  "LoadModelFromPrivateS3": LoadModelFromPrivateS3,
-  "LoadModelFromURL": LoadModelFromURL,
-  "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
-  "WebhookSender": WebhookSender,
-  "FileLoaderNode": FileLoaderNode,
-  "MultiFileLoaderNode": MultiFileLoaderNode,
-  "FileExtractorNode": FileExtractorNode,
-  "ExtractPropertyNode": ExtractPropertyNode,
-  "FSLoadInteger": FSLoadInteger,
-  "FSSaveInteger": FSSaveInteger,
-  "FSLoadText": FSLoadText,
-  "FSSaveText": FSSaveText,
-  "FSLoadImage": FSLoadImage,
-  "FSLoadImageFromURL": FSLoadImageFromURL,
-  "FSSaveImage": FSSaveImage,
-  "FSLoadVideo": FSLoadVideo,
-  "FSLoadVideoFromURL": FSLoadVideoFromURL,
-  "FSSaveVideo": FSSaveVideo,
-  "FSLoadAudio": FSLoadAudio,
-  "FSLoadAudioFromURL": FSLoadAudioFromURL,
-  "FSSaveAudio": FSSaveAudio,
-  "FSProcessAudio": FSProcessAudio,
-  "FSCombineAudio": FSCombineAudio,
-  "GithubReadmeExtractor": GitHubReadmeExtractor,
-  "FSDelay": FSDelay,
+NODE_CLASS_MAPPINGS = {
+    "UploadModelToS3": UploadModelToS3,
+    "UploadImageToS3": UploadImageToS3,
+    "UploadMediaToS3FromLink": UploadMediaToS3FromLink,
+    "UploadTextToS3": UploadTextToS3,
+    "UploadModelToPublicS3": UploadModelToPublicS3,
+    "UploadModelToPrivateS3": UploadModelToPrivateS3,
+    "LoadModelFromPublicS3": LoadModelFromPublicS3,
+    "LoadModelFromPrivateS3": LoadModelFromPrivateS3,
+    "LoadModelFromURL": LoadModelFromURL,
+    "SaveModelToFlowscaleVolume": SaveModelToFlowscaleVolume,
+    "WebhookSender": WebhookSender,
+    "FileLoaderNode": FileLoaderNode,
+    "MultiFileLoaderNode": MultiFileLoaderNode,
+    "FileExtractorNode": FileExtractorNode,
+    "ExtractPropertyNode": ExtractPropertyNode,
+    "FSLoadInteger": FSLoadInteger,
+    "FSSaveInteger": FSSaveInteger,
+    "FSLoadText": FSLoadText,
+    "FSSaveText": FSSaveText,
+    "FSLoadLoRA": FSLoadLoRA,
+    "FSLoadImage": FSLoadImage,
+    "FSLoadImageFromURL": FSLoadImageFromURL,
+    "FSSaveImage": FSSaveImage,
+    "FSLoadVideo": FSLoadVideo,
+    "FSLoadVideoFromURL": FSLoadVideoFromURL,
+    "FSSaveVideo": FSSaveVideo,
+    "FSLoadAudio": FSLoadAudio,
+    "FSLoadAudioFromURL": FSLoadAudioFromURL,
+    "FSSaveAudio": FSSaveAudio,
+    "FSProcessAudio": FSProcessAudio,
+    "FSCombineAudio": FSCombineAudio,
+    "GithubReadmeExtractor": GitHubReadmeExtractor,
+    "FSDelay": FSDelay,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -71,6 +88,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FSSaveInteger": f"[FS]{FS_NODE_ICON}Save Integer (Output)",
     "FSLoadText": f"[FS]{FS_NODE_ICON}Load Text (Input)",
     "FSSaveText": f"[FS]{FS_NODE_ICON}Save Text (Output)",
+    "FSLoadLoRA": f"[FS]{FS_NODE_ICON}Load LoRA (Input)",
     "FSLoadImage": f"[FS]{FS_NODE_ICON}Load Image (Input)",
     "FSLoadImageFromURL": f"[FS]{FS_NODE_ICON}Load Image from URL (Input)",
     "FSSaveImage": f"[FS]{FS_NODE_ICON}Save Image (Output)",

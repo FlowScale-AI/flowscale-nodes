@@ -1,14 +1,17 @@
-from server import PromptServer # type: ignore
-import logging
-from aiohttp import web
-import os
-import git
-import subprocess
 import fnmatch
+import logging
+import os
+import subprocess
+import sys
+
+import git
+from aiohttp import web
+from server import PromptServer  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 CUSTOM_NODES_DIR = os.path.join(os.getcwd(), "custom_nodes")
+
 
 @PromptServer.instance.routes.get("/flowscale/node/list")
 async def list_nodes(request):
@@ -25,24 +28,22 @@ async def list_nodes(request):
             "__pycache__",
             "websocket_image_save.py",
         ]
-        
+
         for item_name in all_items:
             if any(fnmatch.fnmatch(item_name, pattern) for pattern in blacklist):
                 continue
-                
+
             item_path = os.path.join(CUSTOM_NODES_DIR, item_name)
             item_type = "directory" if os.path.isdir(item_path) else "file"
-            
-            nodes.append({
-                "name": item_name,
-                "type": item_type
-            })
-            
+
+            nodes.append({"name": item_name, "type": item_type})
+
         return web.json_response(nodes, status=200)
     except Exception as e:
         logger.error(f"Error listing nodes: {str(e)}")
         return web.json_response({"error": "Failed to list nodes", "details": str(e)}, status=500)
-    
+
+
 @PromptServer.instance.routes.post("/flowscale/node/install")
 async def install_node(request):
     """
@@ -68,46 +69,56 @@ async def install_node(request):
         logger.info(f"Cloning repository {repo_url} into {repo_path}...")
         repo = git.Repo.clone_from(repo_url, repo_path, branch=repo_branch)
 
-        if commit_sha and commit_sha.strip(): 
+        if commit_sha and commit_sha.strip():
             logger.info(f"Checking out to commit {commit_sha}...")
             repo.git.checkout(commit_sha)
             logger.info(f"Successfully checked out to commit {commit_sha}")
-        
+
         # Install APT packages if provided
         if apt_packages and len(apt_packages) > 0:
             logger.info(f"Installing APT packages: {', '.join(apt_packages)}")
             try:
                 apt_command = ["apt-get", "install", "-y"] + apt_packages
                 try:
-                    subprocess.run(["which", "sudo"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    subprocess.run(
+                        ["which", "sudo"],
+                        check=True,
+                        capture_output=True,
+                    )
                     logger.info("Using sudo for apt-get install")
                     subprocess.check_call(["sudo"] + apt_command)
                 except (subprocess.SubprocessError, FileNotFoundError):
                     logger.info("sudo not available, trying to install without it...")
                     subprocess.check_call(apt_command)
-                
+
                 logger.info("APT packages installed successfully")
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install APT packages: {e}")
-        
+
         # Install pip packages if provided
         if pip_packages and len(pip_packages) > 0:
             logger.info(f"Installing pip packages: {', '.join(pip_packages)}")
             try:
-                pip_command = [os.sys.executable, "-m", "pip", "install"] + pip_packages
+                pip_command = [sys.executable, "-m", "pip", "install"] + pip_packages
                 subprocess.check_call(pip_command)
                 logger.info("pip packages installed successfully")
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install pip packages: {e}")
-                return web.json_response({"error": "Failed to install pip packages", "details": str(e)}, status=500)
+                return web.json_response(
+                    {"error": "Failed to install pip packages", "details": str(e)}, status=500
+                )
 
         requirements_file = os.path.join(repo_path, "requirements.txt")
         if os.path.exists(requirements_file):
-            logger.info(f"Found requirements.txt at {requirements_file}. Installing dependencies...")
+            logger.info(
+                f"Found requirements.txt at {requirements_file}. Installing dependencies..."
+            )
             try:
-                with open(requirements_file, 'r') as f:
-                    requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-                
+                with open(requirements_file) as f:
+                    requirements = [
+                        line.strip() for line in f if line.strip() and not line.startswith("#")
+                    ]
+
                 # Install each package individually
                 failed_packages = []
                 logger.info(f"Installing packages from requirements.txt: {', '.join(requirements)}")
@@ -117,25 +128,37 @@ async def install_node(request):
                         continue  # Skip installing transformers package
                     logger.info(f"Installing package: {package}")
                     try:
-                        subprocess.check_call([os.sys.executable, "-m", "pip", "install", package])
+                        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
                     except subprocess.CalledProcessError as e:
                         logger.error(f"Failed to install {package}: {e}")
                         failed_packages.append(package)
-                
+
                 if failed_packages:
                     error_message = f"Failed to install some packages: {', '.join(failed_packages)}"
                     logger.error(error_message)
 
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to install dependencies: {e}")
-                return web.json_response({"error": "Failed to install dependencies", "details": str(e)}, status=500)
+                return web.json_response(
+                    {"error": "Failed to install dependencies", "details": str(e)}, status=500
+                )
 
         logger.info(f"Successfully cloned {repo_url} into {repo_path}")
-        return web.json_response({"message": "Repository installed successfully", "path": repo_path, "commit": commit_sha or repo.head.commit.hexsha}, status=200)
+        return web.json_response(
+            {
+                "message": "Repository installed successfully",
+                "path": repo_path,
+                "commit": commit_sha or repo.head.commit.hexsha,
+            },
+            status=200,
+        )
 
     except Exception as e:
         logger.error(f"Error installing repository: {str(e)}")
-        return web.json_response({"error": "Failed to install repository", "details": str(e)}, status=500)
+        return web.json_response(
+            {"error": "Failed to install repository", "details": str(e)}, status=500
+        )
+
 
 @PromptServer.instance.routes.post("/flowscale/node/uninstall")
 async def uninstall_node(request):
@@ -161,11 +184,11 @@ async def uninstall_node(request):
         if os.path.exists(uninstall_script_path):
             logger.info(f"Found uninstall script at {uninstall_script_path}. Executing...")
             try:
-                subprocess.check_call([os.sys.executable, uninstall_script_path])
+                subprocess.check_call([sys.executable, uninstall_script_path])
                 logger.info(f"Uninstall script {uninstall_script_path} executed successfully.")
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to execute uninstall script: {e}")
-                
+
         # Delete the repository folder
         logger.info(f"Uninstalling repository: {repo_name} at path {repo_path}")
         for root, dirs, files in os.walk(repo_path, topdown=False):
@@ -174,10 +197,14 @@ async def uninstall_node(request):
             for dir in dirs:
                 os.rmdir(os.path.join(root, dir))
         os.rmdir(repo_path)
-        
+
         logger.info(f"Successfully uninstalled repository: {repo_name}")
-        return web.json_response({"message": f"Repository {repo_name} uninstalled successfully"}, status=200)
+        return web.json_response(
+            {"message": f"Repository {repo_name} uninstalled successfully"}, status=200
+        )
 
     except Exception as e:
         logger.error(f"Error uninstalling repository: {str(e)}")
-        return web.json_response({"error": "Failed to uninstall repository", "details": str(e)}, status=500)
+        return web.json_response(
+            {"error": "Failed to uninstall repository", "details": str(e)}, status=500
+        )

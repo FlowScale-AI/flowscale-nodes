@@ -5,9 +5,9 @@ httpx
 python-dotenv
 GitPython
 botocore
-pillow
-pillow-avif-plugin
-pillow-heif
+pillow>=10.1.0
+pillow-avif-plugin>=1.5.0
+pillow-heif>=1.0.0
 numpy
 PyPDF2
 opencv-python
