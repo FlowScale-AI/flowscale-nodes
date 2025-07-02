@@ -23,7 +23,7 @@ class FSDelay:
         }
         
     @classmethod
-    def VALIDATE_INPUTS(s, input_types):
+    def VALIDATE_INPUTS(cls, input_types):
         return True
     
     RETURN_TYPES = ("*",)

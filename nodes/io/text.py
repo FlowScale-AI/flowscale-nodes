@@ -7,7 +7,7 @@ ORCHESTRATOR_API_KEY = os.environ.get("ORCHESTRATOR_API_KEY")
 
 class FSLoadText:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "optional": {
                 "default_value": (
@@ -33,7 +33,7 @@ class FSLoadText:
 
 class FSSaveText:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": {
                 "text": ("STRING", {"forceInput": True}),
@@ -61,7 +61,7 @@ class FSSaveText:
         random_segment = ''.join(random.choices(string.digits, k=6))
         filename = f"{filename_prefix}_{random_segment}.txt"
 
-        if ORCHESTRATOR_API_URL:
+        if ORCHESTRATOR_API_URL and ORCHESTRATOR_API_KEY:
             import httpx
             try:
                 body = {
@@ -70,7 +70,7 @@ class FSSaveText:
                     "filename_prefix": filename_prefix,
                 }
                 headers = {
-                    "X-API-Key": ORCHESTRATOR_API_KEY,
+                    "X-API-Key": ORCHESTRATOR_API_KEY
                 }
                 httpx.post(f"{ORCHESTRATOR_API_URL}/api/v1/webhook", json=body, headers=headers)
             except httpx.RequestError as e:
