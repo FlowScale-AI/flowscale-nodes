@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flowscale-nodes"
-version = "0.3.16"
+version = "0.4.0"
 description = "FlowScale Nodes for ComfyUI - Enhanced media handling and utility nodes"
 readme = "README.md"
 authors = [

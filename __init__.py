@@ -6,7 +6,7 @@ from .api.log import *  # noqa: F403
 from .api.model import *  # noqa: F403
 from .node_index import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-print("Initializing FlowScale Nodes")
+print("Initializing FlowScale Nodes - 0.4.0")
 load_dotenv()
 
 WEB_DIRECTORY = "./web"
