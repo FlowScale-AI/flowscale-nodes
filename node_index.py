@@ -12,6 +12,7 @@ from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
 from .nodes.io.integer import FSLoadInteger, FSSaveInteger
 from .nodes.io.lora import FSLoadLoRA
 from .nodes.io.text import FSLoadText, FSSaveText
+from .nodes.io.threed import FSLoad3D, FSSave3D
 from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
 from .nodes.model_utils import LoadModelFromURL
 from .nodes.s3_utils import (
@@ -58,6 +59,8 @@ NODE_CLASS_MAPPINGS = {
     "FSLoadVideo": FSLoadVideo,
     "FSLoadVideoFromURL": FSLoadVideoFromURL,
     "FSSaveVideo": FSSaveVideo,
+    "FSLoad3D": FSLoad3D,
+    "FSSave3D": FSSave3D,
     "FSLoadAudio": FSLoadAudio,
     "FSLoadAudioFromURL": FSLoadAudioFromURL,
     "FSSaveAudio": FSSaveAudio,
@@ -95,6 +98,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FSLoadVideo": f"[FS]{FS_NODE_ICON}Load Video (Input)",
     "FSLoadVideoFromURL": f"[FS]{FS_NODE_ICON}Load Video from URL (Input)",
     "FSSaveVideo": f"[FS]{FS_NODE_ICON}Save Video (Output)",
+    "FSLoad3D": f"[FS]{FS_NODE_ICON}Load 3D (Input)",
+    "FSSave3D": f"[FS]{FS_NODE_ICON}Save 3D (Output)",
     "FSLoadAudio": f"[FS]{FS_NODE_ICON}Load Audio (Input)",
     "FSLoadAudioFromURL": f"[FS]{FS_NODE_ICON}Load Audio from URL (Input)",
     "FSSaveAudio": f"[FS]{FS_NODE_ICON}Save Audio (Output)",
