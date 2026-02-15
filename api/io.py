@@ -19,6 +19,13 @@ logger = logging.getLogger(__name__)
 mimetypes.add_type("image/webp", ".webp")
 mimetypes.add_type("audio/mp3", ".mp3")
 mimetypes.add_type("audio/wav", ".wav")
+mimetypes.add_type("model/gltf-binary", ".glb")
+mimetypes.add_type("model/gltf+json", ".gltf")
+mimetypes.add_type("model/obj", ".obj")
+mimetypes.add_type("model/stl", ".stl")
+mimetypes.add_type("model/fbx", ".fbx")
+mimetypes.add_type("model/ply", ".ply")
+mimetypes.add_type("model/vnd.usdz+zip", ".usdz")
 
 # File cache for recently accessed files
 _file_cache = {}
@@ -341,6 +348,13 @@ async def search_file(request):
         ".flac",
         ".aac",
         ".m4a",
+        ".glb",
+        ".gltf",
+        ".obj",
+        ".stl",
+        ".fbx",
+        ".ply",
+        ".usdz",
     ]
 
     candidates = []
