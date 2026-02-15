@@ -110,9 +110,14 @@ class FSHunyuan3DGenerate:
 
         logger.info(f"Hunyuan 3D: Queued with request_id: {request_id}")
 
-        # Poll for completion
-        status_url = f"https://queue.fal.run/fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d/requests/{request_id}/status"
-        result_url = f"https://queue.fal.run/fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d/requests/{request_id}"
+        # Use URLs from the queue response (handles nested model paths correctly)
+        status_url = queue_data.get("status_url")
+        result_url = queue_data.get("response_url")
+        if not status_url or not result_url:
+            raise ValueError(
+                f"Missing status_url or response_url in queue response: {queue_data}"
+            )
+
         poll_timeout = httpx.Timeout(30.0, connect=10.0)
 
         max_wait = 600  # 10 minutes max
