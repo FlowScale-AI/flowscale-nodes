@@ -12,6 +12,7 @@ from .nodes.io.image import FSLoadImage, FSLoadImageFromURL, FSSaveImage
 from .nodes.io.integer import FSLoadInteger, FSSaveInteger
 from .nodes.io.lora import FSLoadLoRA
 from .nodes.io.text import FSLoadText, FSSaveText
+from .nodes.hunyuan3d import FSHunyuan3DGenerate
 from .nodes.io.threed import FSLoad3D, FSSave3D
 from .nodes.io.video import FSLoadVideo, FSLoadVideoFromURL, FSSaveVideo
 from .nodes.model_utils import LoadModelFromURL
@@ -68,6 +69,7 @@ NODE_CLASS_MAPPINGS = {
     "FSCombineAudio": FSCombineAudio,
     "GithubReadmeExtractor": GitHubReadmeExtractor,
     "FSDelay": FSDelay,
+    "FSHunyuan3DGenerate": FSHunyuan3DGenerate,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -106,4 +108,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FSProcessAudio": f"[FS]{FS_NODE_ICON}Process Audio",
     "FSCombineAudio": f"[FS]{FS_NODE_ICON}Combine Audio",
     "FSDelay": f"[FS]{FS_NODE_ICON}Delay",
+    "FSHunyuan3DGenerate": f"[FS]{FS_NODE_ICON}Hunyuan 3D (Text to 3D)",
 }
