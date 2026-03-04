@@ -86,4 +86,4 @@ class FSSaveText:
 
         print(f"Preview: {text}")
 
-        return ()
+        return {"ui": {"text": [text]}, "result": ()}
