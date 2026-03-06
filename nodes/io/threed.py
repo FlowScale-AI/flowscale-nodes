@@ -117,7 +117,10 @@ class FSSave3D:
             logger.info(f"I/O Label: {label}")
             logger.info(f"3D model saved to: {save_path}")
 
-            return {"ui": {"text": [save_filename]}, "result": (save_path,)}
+            return {
+                "ui": {"images": [{"filename": save_filename, "subfolder": "", "type": "output"}]},
+                "result": (save_path,),
+            }
         except Exception as e:
             logger.error(f"Error saving 3D model: {e}")
             raise ValueError(f"Error saving 3D model: {e}") from e

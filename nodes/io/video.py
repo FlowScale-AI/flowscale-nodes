@@ -380,7 +380,7 @@ class FSSaveVideo:
             logger.info(f"Video saved to: {output_path}")
 
             # Create preview info for web player compatibility
-            preview = {
+            return {
                 "ui": {
                     "gifs": [
                         {
@@ -401,9 +401,9 @@ class FSSaveVideo:
                             "fullpath": output_path,
                         }
                     ]
-                }
+                },
+                "result": (output_path,),
             }
-            return {"ui": preview, "result": (output_path,)}
 
         except Exception as e:
             logger.error(f"Error saving video: {e}")
@@ -416,6 +416,33 @@ class FSSaveVideo:
         except (subprocess.SubprocessError, FileNotFoundError):
             return False
 
+    def _find_best_h264_encoder(self):
+        """Return the first H.264 encoder that actually works on this system."""
+        candidates = [
+            ("libx264",      ["-crf", "23", "-preset", "ultrafast"]),
+            ("libopenh264",  ["-b:v", "1M"]),
+            ("h264_nvenc",   ["-preset", "fast"]),
+            ("h264_qsv",     ["-global_quality", "25"]),
+            ("h264_vaapi",   ["-b:v", "1M"]),
+            ("h264_v4l2m2m", ["-b:v", "1M"]),
+        ]
+        for encoder, extra in candidates:
+            try:
+                result = subprocess.run(
+                    [
+                        "ffmpeg", "-y",
+                        "-f", "lavfi", "-i", "color=black:s=16x16:d=0.04:r=1",
+                        "-c:v", encoder, "-pix_fmt", "yuv420p",
+                    ] + extra + ["-f", "null", "-"],
+                    capture_output=True, timeout=15,
+                )
+                if result.returncode == 0:
+                    logger.info(f"H.264 encoder probe succeeded: {encoder}")
+                    return encoder
+            except Exception:
+                pass
+        return "mpeg4"
+
     def _encode_with_ffmpeg(self, frame_dir, output_path, fps, format, quality):
         # Map quality (0-100) to CRF (0-51, lower is better)
         # Quality 95 -> CRF 15, Quality 0 -> CRF 51
@@ -423,34 +450,29 @@ class FSSaveVideo:
 
         # Prepare FFmpeg command with performance optimizations
         if format == "mp4":
-            cmd = [
-                "ffmpeg",
-                "-y",  # Overwrite output
-                "-hwaccel",
-                "auto",  # Try hardware acceleration
-                "-framerate",
-                str(fps),
-                "-i",
-                os.path.join(frame_dir, "frame_%05d.png"),
-                "-c:v",
-                "libx264",  # Use H.264 for web compatibility
-                "-preset",
-                "medium",  # Balance between speed and compression
-                "-profile:v",
-                "baseline",  # More compatible profile
-                "-level",
-                "3.0",
-                "-pix_fmt",
-                "yuv420p",  # Required for browser compatibility
-                "-movflags",
-                "+faststart",  # Web streaming optimization
-                "-crf",
-                str(crf),
-                "-threads",
-                "0",  # Use all available CPU cores
-                "-tune",
-                "stillimage",  # Optimize for frame sequences
+            encoder = self._find_best_h264_encoder()
+            logger.info(f"Selected H.264 encoder: {encoder}")
+
+            base = [
+                "ffmpeg", "-y",
+                "-framerate", str(fps),
+                "-i", os.path.join(frame_dir, "frame_%05d.png"),
+                "-c:v", encoder,
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
             ]
+
+            if encoder in ("libx264", "h264_nvenc", "h264_qsv"):
+                base += ["-crf", str(crf), "-preset", "medium"]
+            elif encoder == "libopenh264":
+                bitrate = max(1, int(10 * (quality / 100.0)))
+                base += ["-b:v", f"{bitrate}M"]
+            elif encoder in ("h264_vaapi", "h264_v4l2m2m"):
+                base += ["-b:v", "8M"]
+            else:  # mpeg4 fallback
+                base += ["-q:v", str(int(31 - (quality / 100.0 * 30)))]
+
+            cmd = base
         elif format == "webm":
             cmd = [
                 "ffmpeg",

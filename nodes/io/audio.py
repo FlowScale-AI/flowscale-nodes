@@ -2,15 +2,84 @@ import hashlib
 import io
 import json
 import os
-import random
+import subprocess
 import tempfile
 
 import folder_paths  # type: ignore
 import httpx
+import numpy as np
 import torch  # type: ignore
 import torchaudio  # type: ignore
 
 AUDIO_EXTENSIONS = [".wav", ".mp3", ".ogg", ".flac", ".m4a", ".aac"]
+
+
+def _ffprobe_info(path):
+    """Return (sample_rate, channels) for an audio file via ffprobe."""
+    result = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", str(path)],
+        capture_output=True,
+        check=True,
+    )
+    data = json.loads(result.stdout)
+    for stream in data.get("streams", []):
+        if stream.get("codec_type") == "audio":
+            return int(stream["sample_rate"]), int(stream.get("channels", 1))
+    raise ValueError("No audio stream found in file")
+
+
+def _load_audio(path):
+    """Load audio via ffmpeg → raw float32 PCM → torch tensor. Returns (waveform, sample_rate)."""
+    sample_rate, channels = _ffprobe_info(path)
+    result = subprocess.run(
+        ["ffmpeg", "-v", "quiet", "-i", str(path), "-f", "f32le", "-acodec", "pcm_f32le", "-"],
+        capture_output=True,
+        check=True,
+    )
+    audio_np = np.frombuffer(result.stdout, dtype=np.float32).copy()
+    if channels > 1:
+        audio_np = audio_np.reshape(-1, channels).T  # (channels, samples)
+    else:
+        audio_np = audio_np.reshape(1, -1)
+    return torch.from_numpy(audio_np), sample_rate
+
+
+def _save_audio_to_path(path, waveform, sample_rate, fmt=None):
+    """Save waveform tensor to path via ffmpeg. fmt overrides path extension."""
+    if isinstance(waveform, torch.Tensor):
+        audio_np = waveform.cpu().numpy()
+    else:
+        audio_np = np.array(waveform)
+    audio_np = audio_np.astype(np.float32)
+    channels = audio_np.shape[0]
+    # Interleave: (channels, samples) → (samples, channels) → bytes
+    raw = audio_np.T.tobytes()
+    cmd = [
+        "ffmpeg", "-y",
+        "-f", "f32le", "-ar", str(sample_rate), "-ac", str(channels),
+        "-i", "pipe:0",
+        str(path),
+    ]
+    subprocess.run(cmd, input=raw, capture_output=True, check=True)
+
+
+def _save_audio(path_or_buf, waveform, sample_rate, format=None, **kwargs):
+    """Save audio to a path string or BytesIO buffer via ffmpeg."""
+    if hasattr(path_or_buf, "write"):
+        # BytesIO — write to temp file then copy bytes in
+        ext = "." + (format.lower() if format else "flac")
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            _save_audio_to_path(tmp_path, waveform, sample_rate, fmt=format)
+            with open(tmp_path, "rb") as f:
+                path_or_buf.write(f.read())
+            path_or_buf.seek(0)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    else:
+        _save_audio_to_path(str(path_or_buf), waveform, sample_rate, fmt=format)
 
 
 class FSLoadAudio:
@@ -40,13 +109,13 @@ class FSLoadAudio:
                 raise FileNotFoundError(f"Audio file not found at path: {audio_path}")
 
             # Use torchaudio to load audio
-            waveform, sample_rate = torchaudio.load(audio_path)
+            waveform, sample_rate = _load_audio(audio_path)
 
             # Create audio dictionary in the expected format
             audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
 
-            # Create preview information for the UI
-            preview = {
+            print(f"I/O Label: {label}")
+            return {
                 "ui": {
                     "audio": [
                         {
@@ -55,14 +124,11 @@ class FSLoadAudio:
                             "sample_rate": sample_rate,
                             "channels": waveform.shape[0],
                             "duration": waveform.shape[1] / sample_rate,
-                            "url": f"file={audio_path}",
                         }
                     ]
-                }
+                },
+                "result": (audio_data,),
             }
-
-            print(f"I/O Label: {label}")
-            return {"ui": preview, "result": (audio_data,)}
 
         except Exception as e:
             print(f"Error loading audio: {e}")
@@ -114,14 +180,14 @@ class FSLoadAudioFromURL:
                 temp_file_path = temp_file.name
 
             # Use torchaudio to load audio
-            waveform, sample_rate = torchaudio.load(temp_file_path)
+            waveform, sample_rate = _load_audio(temp_file_path)
             os.unlink(temp_file_path)  # Delete the temporary file
 
             # Create audio dictionary in the expected format
             audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate}
 
-            # Create preview information for the UI
-            preview = {
+            print(f"I/O Label: {label}")
+            return {
                 "ui": {
                     "audio": [
                         {
@@ -133,11 +199,9 @@ class FSLoadAudioFromURL:
                             "url": audio_url,
                         }
                     ]
-                }
+                },
+                "result": (audio_data,),
             }
-
-            print(f"I/O Label: {label}")
-            return {"ui": preview, "result": (audio_data,)}
 
         except Exception as e:
             raise ValueError(f"Error loading audio from URL: {e}") from e
@@ -254,7 +318,7 @@ class FSSaveAudio:
                 if format == "flac":
                     # For FLAC, save to a buffer first to add metadata
                     buff = io.BytesIO()
-                    torchaudio.save(buff, waveform, audio["sample_rate"], format="FLAC")
+                    _save_audio(buff, waveform, audio["sample_rate"], format="FLAC")
 
                     # Add metadata as Vorbis comments if we have any
                     if metadata:
@@ -271,53 +335,11 @@ class FSSaveAudio:
                             f.write(buff)
 
                 elif format == "mp3":
-                    # For mp3 format, use torchaudio with quality setting
-                    compression = max(
-                        0, min(9, int(9 - (quality / 100.0 * 9)))
-                    )  # Convert quality to compression level
-
-                    # Save directly or use fallback method
-                    try:
-                        torchaudio.save(
-                            filepath,
-                            waveform,
-                            audio["sample_rate"],
-                            format="mp3",
-                            compression=compression,
-                        )
-                    except Exception:
-                        # Fallback to ffmpeg via temporary file
-                        temp_wav = os.path.join(
-                            full_output_folder, f"temp_{random.randint(1000, 9999)}.wav"
-                        )
-                        torchaudio.save(temp_wav, waveform, audio["sample_rate"])
-
-                        try:
-                            import subprocess
-
-                            subprocess.run(
-                                [
-                                    "ffmpeg",
-                                    "-y",
-                                    "-i",
-                                    temp_wav,
-                                    "-codec:a",
-                                    "libmp3lame",
-                                    "-qscale:a",
-                                    str(
-                                        int(9 - (quality / 10))
-                                    ),  # Convert quality to ffmpeg scale (0-9)
-                                    filepath,
-                                ],
-                                check=True,
-                            )
-                        finally:
-                            if os.path.exists(temp_wav):
-                                os.remove(temp_wav)
+                    _save_audio(filepath, waveform, audio["sample_rate"], format="mp3")
 
                 else:
                     # For WAV and OGG formats
-                    torchaudio.save(filepath, waveform, audio["sample_rate"], format=format.upper())
+                    _save_audio(filepath, waveform, audio["sample_rate"], format=format.upper())
 
                 # Add to results
                 results.append(
