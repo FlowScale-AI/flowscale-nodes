@@ -17,12 +17,12 @@ class FSLoad3D:
     @classmethod
     def INPUT_TYPES(cls):
         input_dir = folder_paths.get_input_directory()
-        files = [
-            f
-            for f in os.listdir(input_dir)
-            if os.path.isfile(os.path.join(input_dir, f))
-            and f.rsplit(".", 1)[-1].lower() in THREED_EXTENSIONS
-        ]
+        files = []
+        for root, _dirs, filenames in os.walk(input_dir):
+            for f in filenames:
+                if f.rsplit(".", 1)[-1].lower() in THREED_EXTENSIONS:
+                    rel = os.path.relpath(os.path.join(root, f), input_dir)
+                    files.append(rel)
         return {
             "required": {
                 "model_file": (sorted(files),),
@@ -96,6 +96,11 @@ class FSSave3D:
 
     def save_3d(self, file_path, filename_prefix="FlowScale_3D", label="Output 3D Model"):
         try:
+            if not os.path.isabs(file_path) and not os.path.exists(file_path):
+                input_dir = folder_paths.get_input_directory()
+                resolved = os.path.join(input_dir, file_path)
+                if os.path.exists(resolved):
+                    file_path = resolved
             if not os.path.exists(file_path):
                 raise FileNotFoundError(f"3D model file not found: {file_path}")
 
@@ -114,10 +119,24 @@ class FSSave3D:
             # Copy the file to the output directory
             shutil.copy2(file_path, save_path)
 
+            # Copy companion preview image if it exists ({file}.png convention)
+            base_no_ext = os.path.splitext(save_filename)[0]
+            preview_filename = f"{base_no_ext}_preview.png"
+            preview_save_path = os.path.join(output_dir, preview_filename)
+            companion = file_path + ".png"
+            if not os.path.exists(companion):
+                companion = os.path.splitext(file_path)[0] + "_preview.png"
+            if os.path.exists(companion):
+                shutil.copy2(companion, preview_save_path)
+                logger.info(f"Preview image saved to: {preview_save_path}")
+
             logger.info(f"I/O Label: {label}")
             logger.info(f"3D model saved to: {save_path}")
 
-            return {"ui": {"text": [save_filename]}, "result": (save_path,)}
+            return {
+                "ui": {"images": [{"filename": save_filename, "subfolder": "", "type": "output"}]},
+                "result": (save_path,),
+            }
         except Exception as e:
             logger.error(f"Error saving 3D model: {e}")
             raise ValueError(f"Error saving 3D model: {e}") from e

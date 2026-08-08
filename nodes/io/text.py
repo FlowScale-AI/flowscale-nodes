@@ -53,6 +53,11 @@ class FSSaveText:
     RETURN_TYPES = ()
     RETURN_NAMES = ()
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        import time
+        return time.time()
+
     def save_text(self, text, filename_prefix="FlowScale", label="Output Text"):
         print(f"I/O Label: {label}")
         import os
@@ -86,4 +91,4 @@ class FSSaveText:
 
         print(f"Preview: {text}")
 
-        return ()
+        return {"ui": {"text": [text]}, "result": ()}
